@@ -18,7 +18,6 @@ class EditProductsSheet extends SheetPage
     public function sheet(Sheet $sheet): Sheet
     {
         return $sheet
-            ->query(Product::query())
             ->columns([
                 Columns\Text::make('sku')->readOnly()->frozen(),
                 Columns\Text::make('name')->rules(['required', 'max:255']),
@@ -119,6 +118,8 @@ public static function getPages(): array
 Link to it from the list page with a header action, for example `Action::make('sheet')->url(ProductResource::getUrl('sheet'))`.
 
 Users who can open the resource can open the sheet. Each changed record is checked with the resource's `canEdit()`, new rows with `canCreate()` and deleted rows with `canDelete()`.
+
+The sheet shows the records of the resource's `getEloquentQuery()`, so its scopes and tenancy apply. Pass another query with `$sheet->query(...)`; every read and write of the sheet stays inside that query.
 
 ### Columns
 
@@ -408,6 +409,15 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 | `$sheet->chunkSize(int)` | 200 rows loaded per request while scrolling |
 | `$sheet->height(string)` | The rest of the window, so the page does not scroll. Adjusted when the window is resized. Pass a CSS height to fix it |
 | `$sheet->searchable(array)` | all text columns |
+
+### Security
+
+- **What users can see is the sheet's query.** Every read and write — rows, saves, deletes, history, import, export, bulk edit — stays inside `query()` (the resource's `getEloquentQuery()` on a page, the relationship on a relation manager). Hiding a column or filtering rows only changes the view: every column of the sheet is sent to the browser for the rows on screen. Leave out of the query the records users must not see, and out of the columns the attributes they must not read.
+- **Writes are checked record by record** with the policies (`canEdit()`, `canCreate()`, `canDelete()`) and the column rules. A widget uses the model's policy; without a policy it allows every change, so add one or make the columns `readOnly()`.
+- **Keys:** do not make a key column writable (the primary key, a tenant key, or the parent key of a relation manager) unless users may move records with it.
+- **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further.
+- **Links and images** open only `http`, `https`, `mailto` and `tel` URLs. Image columns load their URLs in every viewer's browser; when users can type them, prefer `disk()` or `url()`.
+- **Messages:** a `SaveAborted` message is shown in a Filament notification, which renders HTML. Escape record values you put in it with `e()`.
 
 ### Translations
 

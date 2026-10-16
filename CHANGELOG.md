@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-16
+
 ### Added
 
 - `SheetPage` to edit the records of a Filament resource as a canvas-rendered spreadsheet.
@@ -39,3 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The sheet fills the rest of the window by default, so the status bar stays on screen whatever is above or below it. `height()` sets a fixed height.
 - Dark mode, the panel's colors and English and Japanese translations.
 - Typing with an input method (Japanese, Chinese, Korean) from the first character of a cell, and full-width digits read as numbers and dates.
+- A sheet page reads and writes the records of its resource's `getEloquentQuery()` unless it is given another query.
+- Select columns check values with the relationship's query (constraints, global scopes, tenancy) instead of `exists`, and `relationship()` takes a closure to narrow it.
+- Saves can only be staged on sheets that can save, in parts of at most 5,000 rows and a few saves per user at a time.
+- Infinite numbers are refused, and formulas that overflow are left empty.
+- Imported xlsx files are read in linear time, with limits on the file size, the inflated size and the number of columns.
+- Links and images only open `http`, `https`, `mailto` and `tel` URLs.
+- A multi-select cell takes at most 500 values; search and "contains" filters are cut at 255 characters; impossible dates in filters are ignored.
+- Records cannot be opened from the browser when the sheet does not open them, and every view method checks access to the sheet.
