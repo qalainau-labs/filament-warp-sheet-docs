@@ -1,0 +1,41 @@
+# Changelog
+
+All notable changes to `qalainau/filament-warp-sheet` will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- `SheetPage` to edit the records of a Filament resource as a canvas-rendered spreadsheet.
+- Scrolling through the whole query result without pagination: the sheet lists the sorted and filtered primary keys first and loads the rows on screen in chunks, so the scrollbar is exact and the cursor stays on the same record after sorting.
+- Sorting on the server (select columns by their labels), search that treats `%` and `_` as plain characters, and Filament table filters.
+- Spreadsheet editing: a cell cursor, typing to replace, F2 to edit, range selection, copy and paste with Excel and Google Sheets, fill down, undo and redo, frozen columns, and the count, sum and average of the selection.
+- A fill handle to extend the selection with series of numbers, dates and numbered texts, Ctrl/Cmd+R to fill right, and Ctrl+; / Ctrl+Shift+; for today's date and the current time.
+- Column resizing by dragging the header edge (double-click to fit), and a "Columns" menu to hide and reorder columns, remembered in the browser.
+- Saved views of the column arrangement, sort, search and filters, private or shared, with a default per user (`savedViews()`, `shareableViews()`, `viewKey()`), stored in the `warp_sheet_views` table.
+- Grouping rows by a column from its header menu, with counts and subtotals per group worked out in the database, collapsible groups, and the grouping saved in views (`groupable()`).
+- A row of totals for every record matching the search and filters (`summarize('sum')`, `avg`, `min`, `max`, `count`), worked out in the database.
+- Computed columns (`Columns\Computed::make()->formula('price * stock')`) recalculated in the browser as other cells change, sortable in the database and exported.
+- Image columns (thumbnails from a URL, a disk path or a closure) and link columns opened with Ctrl/Cmd+click or the right-click menu, never for `javascript:` URLs.
+- Columns: `Text`, `Textarea`, `MultiSelect` (a `belongsToMany` relationship synced on save, or an array attribute), `Number` (with currencies, prefixes and suffixes), `Select` (static options, a backed enum, or a `belongsTo` relationship searched on the server when it has many options), `Date`, `DateTime` (with a display timezone), `Time` and `Boolean`, with labels, widths, rules and read-only columns.
+- Read-only cells decided record by record (`readOnly(fn (?Model $record) => ...)`) and cell colors from the panel's palette (`color()`).
+- An audit log of every save from the sheet, with old and new values, user and time per record, shown from the right-click menu (`auditLog()`), stored in the `warp_sheet_changes` table.
+- Find and replace in the sheet (Ctrl/Cmd+F, Ctrl+H) across every matching record, with highlights, match case, and Replace all as one undo step.
+- Column filters from a button in every header — contains, ranges, periods and lists of values — run in the database and applied to totals, exports, bulk edit and views.
+- Opening a record in the resource's form in a modal (double-click a row number, or the right-click menu), read-only when the user may not edit it (`recordModal()`).
+- `SheetWidget` and `SheetRelationManager` to put a sheet on a dashboard or in a relation manager (`hasMany`, `morphMany`), with `recordForm()` and `recordTitleAttribute()` for opening rows; several sheets can share a page.
+- A right-click menu (also Shift+F10 and the menu key) to open, add and delete rows.
+- "Review": a panel listing the unsaved changes with their old and new values, to jump to them or revert a cell or a record.
+- Simple column rules (`required`, `numeric`, `min`, `max`, `email`, date formats…) checked in the browser as soon as a cell changes, with Laravel's messages.
+- Saving every change in one go, all or nothing: policies, validation, conflicts with changes made by others (merged when they touched other columns), and errors and conflicts marked on the cells. Adding and deleting rows are part of the same save.
+- `beforeSave()` and `afterSave()` hooks that run inside the save's transaction, with the keys of the created, updated and deleted records. Throwing `SaveAborted` cancels the save with a message.
+- Bulk edit on the server of the selected rows or every row matching the search and filters (`bulkEditable()`): set, clear, find and replace, add, change by a percentage, all or nothing.
+- Excel and CSV export of the saved records with the current search, filters and sort (`exportable()`).
+- CSV, TSV and Excel import matched by a key column (`importable(key: ...)`), read in the browser, that turns only the differing cells into changes to review and save.
+- Fast large saves: changes are sent in parts, checked and written in chunks of 500 rows with prepared `UPDATE` statements (on MySQL, MariaDB and PostgreSQL, 100 rows per statement), with progress in the toolbar. `maxChangesPerSave()` limits a save (100,000 records by default) and `modelEvents()` saves through Eloquent when the model has listeners.
+- The sheet fills the rest of the window by default, so the status bar stays on screen whatever is above or below it. `height()` sets a fixed height.
+- Dark mode, the panel's colors and English and Japanese translations.
+- Typing with an input method (Japanese, Chinese, Korean) from the first character of a cell, and full-width digits read as numbers and dates.
