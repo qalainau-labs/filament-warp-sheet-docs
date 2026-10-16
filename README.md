@@ -4,6 +4,10 @@
 
 **Turn a Filament resource into a spreadsheet: scroll through every record without pagination, edit and paste like Excel, and save all changes in one go — with your policies, validation and conflict checks.**
 
+<a href="https://filament-warp-sheet.webllsystem.com/"><img src="https://raw.githubusercontent.com/qalainau-labs/filament-warp-sheet-docs/main/art/live-demo.png" alt="Try the live demo: filament-warp-sheet.webllsystem.com" width="592"></a>
+
+Scroll through 100,000 products, paste from Excel, group by category and save every change at once at **[filament-warp-sheet.webllsystem.com](https://filament-warp-sheet.webllsystem.com/)**. No sign-up needed; the data is reset every hour.
+
 Price updates, stock counts and cleaning up a customer list usually mean exporting to Excel, fixing the file and importing it again. Warp Sheet lets your users do that work inside Filament. They see the whole query result as one sheet, move around with the keyboard, paste a block of cells from Excel or Google Sheets, and press Save. The server checks every changed record against its policy and your rules, writes everything in one transaction or nothing at all, and marks the cells that need attention.
 
 ```php
