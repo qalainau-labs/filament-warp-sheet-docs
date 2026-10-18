@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-19
+
+### Security
+
+- A relation manager's parent key column (and morph type) is always read-only, so rows cannot be moved to or created under another owner.
+- Multi-select relationships accept only whole-number keys for integer keys (MySQL rounded "1.9" to another record), and select values must be integers or strings.
+- Dates with times reject minutes and seconds over 59; PostgreSQL saves no longer cut long text silently; validation results are kept apart for new and saved rows.
+- Malformed changes (keys that are arrays, values that are not lists) are ignored instead of failing with a server error; filters and imports skip non-numeric values for integer columns.
+- Notification bodies built from validation and `SaveAborted` messages are escaped.
+- Exported CSV neutralizes formulas behind spaces, line breaks, invisible characters and full-width signs; exported xlsx files stay valid with any text (U+FFFE/U+FFFF, broken UTF-8, cells over 32,767 characters, sheet names with brackets); export file names drop invisible formatting characters.
+- Staged changes keep only deletes, updates and creates; guests stage per session; read-only relation managers and sheets that cannot save refuse staging and import matching.
+- Saved views are limited in size and to 100 per user and sheet, and keep only the table's own filters. Exports are limited to 10 a minute per user.
+- Search in the sheet and sorting by a select column use the relationship's narrowed query; opening a record that is not in the sheet no longer fails with a server error.
+- Imports cap the number of cells, multi-select text is split in linear time, and long text skips the series and email checks in the browser.
+
 ## [1.0.1] - 2026-10-19
 
 ### Changed

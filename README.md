@@ -90,6 +90,8 @@ composer config repositories.qalainau composer https://qalainau.privato.pub/comp
 composer config --auth http-basic.qalainau.privato.pub "your-email" "your-license-key"
 ```
 
+This writes your license key to `auth.json` in the project. Add `auth.json` to `.gitignore`, and on CI or servers pass the credentials in the `COMPOSER_AUTH` environment variable instead.
+
 Install the package, run the migration and publish Filament's assets:
 
 ```bash
@@ -418,10 +420,11 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 
 - **What users can see is the sheet's query.** Every read and write — rows, saves, deletes, history, import, export, bulk edit — stays inside `query()` (the resource's `getEloquentQuery()` on a page, the relationship on a relation manager). Hiding a column or filtering rows only changes the view: every column of the sheet is sent to the browser for the rows on screen. Leave out of the query the records users must not see, and out of the columns the attributes they must not read.
 - **Writes are checked record by record** with the policies (`canEdit()`, `canCreate()`, `canDelete()`) and the column rules. A widget uses the model's policy; without a policy it allows every change, so add one or make the columns `readOnly()`.
-- **Keys:** do not make a key column writable (the primary key, a tenant key, or the parent key of a relation manager) unless users may move records with it.
+- **Keys:** do not make a key column writable (the primary key or a tenant key) unless users may move records with it. A relation manager always makes its parent key read-only.
 - **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further.
 - **Links and images** open only `http`, `https`, `mailto` and `tel` URLs. Image columns load their URLs in every viewer's browser; when users can type them, prefer `disk()` or `url()`.
-- **Messages:** a `SaveAborted` message is shown in a Filament notification, which renders HTML. Escape record values you put in it with `e()`.
+- **Messages:** `SaveAborted` and validation messages are escaped before they are shown in Filament notifications.
+- **Limits:** a user can export 10 times a minute and save 100 views per sheet; staged parts of large saves are limited in size and number.
 
 ### Translations
 
