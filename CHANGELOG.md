@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-19
+
+### Changed
+
+- The commercial license agreement is now one text for every Warp plugin (the plugin you purchase is the "Software"); the terms are unchanged.
+
+### Fixed
+
+- The right-click menu items (add, delete, collapse, ungroup) could not be clicked.
+- Pasting one value into a range that crosses group headings wrote to rows below the range, and pasting onto collapsed headings added rows.
+- Pasting below the last row is one undo step, including the rows it adds; new rows are shown even when the group of new rows was collapsed; undone and redone new rows go back to the end.
+- Clearing a boolean cell turns it off, and boolean cells no longer open a text editor (F2, Ctrl+Enter or an input method).
+- Columns the database does not let be empty are checked before saving, and database errors are reported without a server error.
+- Pressing Enter right after typing in a select searched on the server waits for the results instead of keeping the typed text.
+- Redoing an edit back to the saved value no longer marks the cell as changed; reverting a row's changes clears its conflict mark.
+- A cell's error is shown in the status bar before a short message from another cell; a save that stops on a conflict moves to the conflicting cell; Review says when a change is in a row the search or filters hide.
+- The filter panel takes the keyboard every time it opens (typing went into the sheet when the previous panel was for a column of the same type), and stays open however long the funnel is held.
+- Imported changes to records outside the current search or filters are listed in a group of their own while grouping; Review's row numbers follow collapsing and expanding; Ctrl+H in the find box opens replace instead of deleting a character.
+- With several sheets on one page, one of them could stay empty: each sheet now keeps its own requests and listeners.
+- Rows opened in a widget's `recordForm()` could not be saved.
+- Filament's filters dropdown was cut off by the sheet's container.
+- Leaving the page through the panel's SPA navigation asks first when the sheet has unsaved changes.
+- The status bar sums only number columns (select values such as foreign keys are counted, not added), and the cell editor follows its row when the rows are reloaded.
+- Scrolling quickly no longer leaves the rows on screen empty while the rows scrolled past load first: the rows on screen are loaded first, chunks scrolled past are dropped, and up to three chunks load at once.
+
 ## [1.0.0] - 2026-10-16
 
 ### Added
