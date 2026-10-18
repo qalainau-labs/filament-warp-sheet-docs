@@ -1,6 +1,9 @@
 # Commercial License Agreement
 
-**Warp Sheet** (qalainau/filament-warp-sheet, the "Software")
+The Warp plugins for Filament published by qalainau (Warp Table, Warp Repeater, Warp Scheduler,
+Warp Sheet, Warp Pivot and any later Warp plugin, each a `qalainau/filament-warp-*` package).
+This Agreement applies separately to each Warp plugin you purchase; that plugin is the "Software".
+A license for one Warp plugin does not grant any right to another.
 
 Copyright © qalainau. All rights reserved.
 
@@ -80,5 +83,7 @@ must cease all use and destroy all copies of the Software.
 
 ---
 
-For licensing questions, open an issue at https://github.com/qalainau-labs/filament-warp-sheet-docs/issues.
+For licensing questions, open an issue in the public docs repository of the plugin you purchased
+(https://github.com/qalainau-labs/filament-warp-<name>-docs/issues, for example
+https://github.com/qalainau-labs/filament-warp-table-docs/issues).
 Do not post your license key or other private details in the issue.
