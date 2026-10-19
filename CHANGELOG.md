@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-10-20
+
+### Changed
+
+- The license agreement no longer lists a Lifetime tier. The tiers are Single Project and Unlimited Projects, each
+  with one year of updates.
+- The license agreement adds a refund policy (section 5): a full refund within seven days of purchase for a defect
+  that cannot be fixed or worked around.
+
 ## [1.0.3] - 2026-10-20
 
 ### Changed
