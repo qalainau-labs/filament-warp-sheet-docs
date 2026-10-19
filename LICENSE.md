@@ -22,15 +22,13 @@ the Software according to the license tier you purchased:
   One (1) year of updates.
 - **Unlimited Projects** — Use in an **unlimited** number of projects, including
   SaaS applications. One (1) year of updates.
-- **Lifetime** — Same as Unlimited Projects, with updates for as long as the
-  Software is maintained.
 
 A "project" means a single application codebase. Each end product you sell,
 sublicense, or deploy for a distinct client counts as a separate project.
 
 A "SaaS application" means an application that serves multiple customers or
 organizations under a subscription or similar arrangement. Using the Software in a
-SaaS application requires an Unlimited Projects or Lifetime license.
+SaaS application requires an Unlimited Projects license.
 
 ## 2. Permitted Use
 
@@ -59,24 +57,41 @@ You may **not**:
 - Renewals are offered at the current price of the license tier.
 - Support is provided as described in the Support section of the README.
 
-## 5. Ownership
+## 5. Refunds
+
+- You may request a refund within seven (7) days of purchase if the Software has a
+  defect that prevents its documented features from working and the licensor cannot
+  fix it or offer a workaround. Approved refunds are made in full to the original
+  payment method.
+- The Software is delivered as source code immediately after purchase. Please try the
+  live demo and read the documentation before buying: refunds are not given because
+  the Software does not suit your use case, because you changed your mind, or after
+  the seven (7) day period.
+- By completing your purchase you request immediate access to the Software and
+  acknowledge that, to the extent permitted by applicable law, you lose any statutory
+  right of withdrawal once access is provided.
+- When a refund is made, your license and its credentials are revoked, and you must
+  cease all use of the Software and destroy all copies.
+- Renewals are refundable on the same terms, counted from the renewal date.
+
+## 6. Ownership
 
 The Software is licensed, not sold. The licensor retains all right, title, and
 interest, including all intellectual property rights, in and to the Software.
 
-## 6. Warranty Disclaimer
+## 7. Warranty Disclaimer
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
 PARTICULAR PURPOSE, AND NONINFRINGEMENT.
 
-## 7. Limitation of Liability
+## 8. Limitation of Liability
 
 IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-## 8. Termination
+## 9. Termination
 
 This license terminates automatically if you breach its terms. Upon termination you
 must cease all use and destroy all copies of the Software.
