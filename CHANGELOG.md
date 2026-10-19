@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-10-20
+
+### Changed
+
+- Support moves to https://warpui.com/support?plugin=sheet: questions before and after buying, bug reports (also
+  private ones) and an email when the fix is released. The README, the license agreement and the `support` links in
+  `composer.json` point there, and `composer.json` links the public docs instead of the private repository.
+
 ## [1.0.4] - 2026-10-20
 
 ### Changed
