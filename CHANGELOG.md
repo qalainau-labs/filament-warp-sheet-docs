@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-20
+
+### Changed
+
+- Sorting, filtering, searching, grouping and applying a view keep the cursor and the scroll position where they are,
+  like a spreadsheet. The cursor used to follow its record to the new position, so a sort could jump the view to row
+  46,000 of 100,000. After saving while grouped, the cursor still follows the edited record into its new group.
+
 ## [1.0.2] - 2026-10-19
 
 ### Security
