@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-10-20
+
+### Fixed
+
+- A model event that cancels a save (`saving`, `updating`, `creating` or `deleting` returning `false`) no longer shows as
+  saved. Nothing is saved and the record is marked with an error. A cancelled new row used to come back without a key.
+- Saved rows show the values the database has, including columns an observer, a trigger or a generated column wrote.
+- Bulk edit sets date times and times as typed. With a Filament timezone other than the app's, they were shifted by the
+  difference between the two timezones.
+- Grouping by a date column whose database column also stores times adds up the subtotals of the whole day. They
+  used to show only one of its times.
+- Grouping on a case-insensitive collation (MySQL's default) puts "Apple" and "apple" in one group. They used to
+  alternate in many small groups, most of them without subtotals.
+- A date time column's filter uses the days of the column's timezone (`->timezone()`), not the app's.
+- The totals are worked out again after a save also when their columns are hidden, so showing the column again no
+  longer shows the totals from before the save. A late answer no longer replaces the totals of a newer search.
+- Grouping by another column opens every group. Groups with the same value in the new column used to stay collapsed.
+- Fill down, fill right, the fill handle and copying write to and copy the rows that were selected, even when the sheet
+  is sorted or filtered while their rows are still loading.
+- "Review" fills in the rows and old values that were still loading when it was opened.
+- Unsaved changes keep the version they were edited on when the sheet reloads its rows after a bulk edit or the record
+  form, so someone else's change in between is still a conflict instead of being overwritten.
+- A record changed in the same second as the sheet listed the records counts as a conflict for rows written without
+  being loaded. `updated_at` is kept in whole seconds, so such a change used to be missed.
+- A changed record that someone else deleted is taken out of the sheet with its changes, with a message. It used to
+  stay as a conflict that every save reported again.
+- Find (Ctrl/Cmd+F) looks for its matches again after sorting, filtering or saving, and no longer shows "…" after its
+  text is cleared quickly.
+- A sheet widget that reads the dashboard's page filters (`InteractsWithPageFilters`) lists its records again when they
+  change.
+- After a save, bulk edit or the record form, the other sheets on the page that show the same model reload their rows.
+
 ## [1.0.5] - 2026-10-20
 
 ### Changed

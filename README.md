@@ -78,6 +78,7 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - PHP 8.3+
 - Laravel 12 or 13
 - Filament 5.x (Livewire 4)
+- SQLite 3.25+, MySQL 8.0+, MariaDB 10.2+ or PostgreSQL (grouping uses window functions)
 
 ## Installation
 
@@ -141,7 +142,7 @@ use Qalainau\FilamentWarpSheet\Columns;
 | `Columns\Select` | `->options([...])`, `->enum(Status::class)` (labels from Filament's `HasLabel`) or `->relationship('category', 'name')` (`belongsTo`). Sorted by label. |
 | `Columns\MultiSelect` | Several values: `->relationship('tags', 'name')` (`belongsToMany`, saved with `sync()`), or `->options([...])` / `->enum(...)` on an attribute cast to an array. Shown as small labels; typed and pasted as labels separated by commas (`Sale, Eco`), with the list completing the last one. Not sortable. |
 | `Columns\Date` | Stored as `Y-m-d`. Accepts pasted `2026/10/14`. |
-| `Columns\DateTime` | Shown as `Y-m-d H:i`, or with seconds after `->seconds()`. `->timezone('Asia/Tokyo')` shows and reads it in another timezone than the app's. Accepts pasted `2026/10/14 9:05`. |
+| `Columns\DateTime` | Shown as `Y-m-d H:i`, or with seconds after `->seconds()`. `->timezone('Asia/Tokyo')` shows and reads it in another timezone than the app's; the column filter's dates are that timezone's days too. Accepts pasted `2026/10/14 9:05`. |
 | `Columns\Time` | Shown as `H:i`, or with seconds after `->seconds()`. |
 | `Columns\Image` | A thumbnail of the value: a URL, a path on `->disk('public')`, or `->url(fn ($value, $record) => ...)`. `->circular()` for photos of people. Read-only unless you call `->readOnly(false)`. |
 | `Columns\Link` | Text shown as a link. Ctrl/Cmd+click (or the right-click menu) opens it in a new tab; a plain click selects the cell as usual. The value is the URL unless you build one with `->url(fn ($value, $record) => ...)`. `javascript:` and `data:` URLs never open. |
@@ -233,6 +234,8 @@ Open the menu of a column header (the funnel) and choose "Group by this column".
 
 Text, select, boolean, date and number columns can be grouped by. Turn it off for a column with `->groupable(false)`. A column with more than 5,000 different values in the result is not grouped. Rows added while grouped are listed in a "New rows" group at the end; after a save the groups are worked out again.
 
+Values that the database treats as equal share a group: with a case-insensitive collation (MySQL's default), "Apple" and "apple" are one group, named after its first row. A date column groups by day even when the database column also stores times, and its subtotals cover the whole day. Grouping by another column opens every group again.
+
 ### Find and replace
 
 Ctrl/Cmd+F opens a find bar over the sheet; Enter and Shift+Enter go to the next and previous matching cell, and matching cells are highlighted. It searches every record matching the search and filters, not only the rows loaded: the server finds the rows whose text columns or select labels contain the text, and the browser then checks the cells as they are shown, unsaved changes included (also with "Match case"). Number and date cells match in rows already found.
@@ -275,7 +278,9 @@ It needs a form on the resource. Turn it off with `$sheet->recordModal(false)`.
 
 The save is all or nothing. Deletes are processed first, then updates, then new rows, so a new row may reuse a unique value of a deleted one.
 
-A record changed by someone else after it was loaded is a conflict only when the same column changed; changes to other columns are merged. Rows written without being loaded (for example by pasting far below the visible rows) are a conflict when they changed after the sheet listed the records. Conflicts use `updated_at`, so the model needs timestamps for them.
+A record changed by someone else after it was loaded is a conflict only when the same column changed; changes to other columns are merged. Rows written without being loaded (for example by pasting far below the visible rows) are a conflict when they changed after the sheet listed the records. Conflicts use `updated_at`, so the model needs timestamps for them. Most databases keep `updated_at` in whole seconds, so a record changed in the same second as the listing also counts as a conflict. Rows with unsaved changes keep the version they were edited on when the sheet reloads its rows (after a bulk edit or the record form), so someone else's change in between is still a conflict. A changed record that someone else deleted is taken out of the sheet with its changes, and the sheet says so.
+
+After a save the sheet shows the saved rows as the database has them, so columns written by an observer, a trigger or a generated column appear straight away. The totals are worked out again, also for columns that are hidden. If a model event (`saving`, `updating`, `creating`, `deleting`) returns `false`, nothing is saved and the record is marked with an error.
 
 By default a save may touch up to 100,000 records:
 
@@ -296,7 +301,7 @@ Rows are written with prepared `UPDATE` statements rather than `Model::save()`, 
 | Find and replace (optionally matching case) | Text, Textarea |
 | Add an amount, change by a percentage (rounded to the column's decimals) | Number |
 
-The new values go through the same path as a save: the resource's `canEdit()`, the column rules, `beforeSave()`/`afterSave()`, and one transaction, so if any record fails, nothing is changed. Records whose cell is read-only for them are skipped. The sheet then reloads the rows; unsaved changes stay.
+The new values go through the same path as a save: the resource's `canEdit()`, the column rules, `beforeSave()`/`afterSave()`, and one transaction, so if any record fails, nothing is changed. Records whose cell is read-only for them are skipped. The sheet then reloads the rows; unsaved changes stay. Date times and times are set as typed, in the column's timezone, whatever the panel's Filament timezone.
 
 ```php
 $sheet->bulkEditable();
@@ -328,7 +333,7 @@ An exported file can be imported again unchanged, so "export, edit in Excel, imp
 
 ### Widgets and relation managers
 
-A sheet can also be a dashboard widget or a relation manager. The `sheet()` method is the same; each sheet on a page has its own search, filters, views and unsaved changes.
+A sheet can also be a dashboard widget or a relation manager. The `sheet()` method is the same; each sheet on a page has its own search, filters, views and unsaved changes. When one sheet saves (also through bulk edit or the record form), the other sheets on the page that show the same model reload their rows; their unsaved changes stay.
 
 A widget extends `SheetWidget`. It checks `canView()` and, for edits, the model's policy (`update`, `create`, `delete`) if it has one. It is 28rem tall unless you set `height()`, and has no resource form, so pass one to open rows:
 
@@ -352,6 +357,27 @@ class OutOfStock extends SheetWidget
                 TextInput::make('name')->required(),
             ])
             ->recordTitleAttribute('name');
+    }
+}
+```
+
+A widget on a dashboard with filters can use Filament's `InteractsWithPageFilters` and read `$this->pageFilters` in `sheet()`. When the dashboard filters change, the sheet lists its records again:
+
+```php
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+
+class OutOfStock extends SheetWidget
+{
+    use InteractsWithPageFilters;
+
+    public function sheet(Sheet $sheet): Sheet
+    {
+        return $sheet
+            ->query(Product::query()->where('stock', 0)->when(
+                $this->pageFilters['category'] ?? null,
+                fn ($query, $category) => $query->where('category_id', $category),
+            ))
+            ->columns([/* … */]);
     }
 }
 ```
