@@ -102,7 +102,7 @@ php artisan migrate
 php artisan filament:assets
 ```
 
-The migrations create two tables: `warp_sheet_views` for the views users save, and `warp_sheet_changes` for the history of sheets with `auditLog()`. Your tables are not changed. To edit the migration, publish it with `php artisan vendor:publish --tag=filament-warp-sheet-migrations`.
+The migrations create two tables: `warp_sheet_views` for the views users save, and `warp_sheet_changes` for the history of sheets with `auditLog()`. Your tables are not changed. To edit the migration, publish it with `php artisan vendor:publish --tag=filament-warp-sheet-migrations`. Publish it before you run `php artisan migrate` for the first time: Warp Sheet then runs your copy instead of its own. If the tables already exist, change them with a migration of your own instead.
 
 > Run `php artisan filament:assets` again after every update of the package.
 
