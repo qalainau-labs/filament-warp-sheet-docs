@@ -67,6 +67,7 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - **Select columns with many options**: a searchable dropdown; relationships with more than 1,000 options are searched on the server as you type.
 - **Column types**: text, multi-line text, numbers with currencies, selects (including enums and searched relationships), multi-selects for `belongsToMany`, dates, date-times, times and booleans, with per-record read-only cells and colors.
 - **Pages, widgets and relation managers**: a sheet can be a resource page, a dashboard widget, or a relation manager on a record's page, with as many on one page as you like.
+- **Multi-tenancy**: on a panel with Filament's tenancy, each team sees, edits and saves views of its own records only. See [Multi-tenancy](#multi-tenancy).
 - **Filament integration**: a resource page, panel colors and fonts, dark mode, notifications, modal actions, save hooks and translations (English and Japanese).
 
 | Select editor | Dark mode |
@@ -126,7 +127,7 @@ Link to it from the list page with a header action, for example `Action::make('s
 
 Users who can open the resource can open the sheet. Each changed record is checked with the resource's `canEdit()`, new rows with `canCreate()` and deleted rows with `canDelete()`.
 
-The sheet shows the records of the resource's `getEloquentQuery()`, so its scopes and tenancy apply. Pass another query with `$sheet->query(...)`; every read and write of the sheet stays inside that query.
+The sheet shows the records of the resource's `getEloquentQuery()`, so its scopes and tenancy apply (see [Multi-tenancy](#multi-tenancy)). Pass another query with `$sheet->query(...)`; every read and write of the sheet stays inside that query.
 
 ### Columns
 
@@ -226,7 +227,7 @@ $sheet
     ->viewKey('products');    // share views between pages that show the same sheet (defaults to the page class)
 ```
 
-Views are stored per tenant when the panel has tenancy.
+Views are stored per tenant when the panel has tenancy (see [Multi-tenancy](#multi-tenancy)).
 
 ### Grouping rows
 
@@ -446,8 +447,8 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 
 - **What users can see is the sheet's query.** Every read and write — rows, saves, deletes, history, import, export, bulk edit — stays inside `query()` (the resource's `getEloquentQuery()` on a page, the relationship on a relation manager). Hiding a column or filtering rows only changes the view: every column of the sheet is sent to the browser for the rows on screen. Leave out of the query the records users must not see, and out of the columns the attributes they must not read.
 - **Writes are checked record by record** with the policies (`canEdit()`, `canCreate()`, `canDelete()`) and the column rules. A widget uses the model's policy; without a policy it allows every change, so add one or make the columns `readOnly()`.
-- **Keys:** do not make a key column writable (the primary key or a tenant key) unless users may move records with it. A relation manager always makes its parent key read-only.
-- **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further.
+- **Keys:** do not make a key column writable (the primary key or a foreign key) unless users may move records with it. A relation manager always makes its parent key read-only, and a panel with tenancy always makes the tenant key read-only (see [Multi-tenancy](#multi-tenancy)).
+- **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further. On a panel with tenancy, see [which options are scoped](#multi-tenancy).
 - **Links and images** open only `http`, `https`, `mailto` and `tel` URLs. Image columns load their URLs in every viewer's browser; when users can type them, prefer `disk()` or `url()`.
 - **Messages:** `SaveAborted` and validation messages are escaped before they are shown in Filament notifications.
 - **Limits:** a user can export 10 times a minute and save 100 views per sheet; staged parts of large saves are limited in size and number.
@@ -459,6 +460,167 @@ The sheet ships with English and Japanese. To change the wording, publish the tr
 ```bash
 php artisan vendor:publish --tag=filament-warp-sheet-translations
 ```
+
+## Multi-tenancy
+
+Filament panels can serve many teams (or companies, or shops) from one app with [multi-tenancy](https://filamentphp.com/docs/users/tenancy): `$panel->tenant(Team::class)`. Warp Sheet supports it, so a SaaS can give every team a sheet of its own records. There is nothing to switch on. On a panel without tenancy, the sheet works exactly as before.
+
+### Setting up the panel
+
+This is Filament's own setup; the sheet needs nothing more. A full example with a `Team` model, users who belong to several teams, and products that belong to one team:
+
+```php
+// app/Providers/Filament/AppPanelProvider.php
+use App\Models\Team;
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->id('app')
+        ->path('app')
+        ->login()
+        ->tenant(Team::class, slugAttribute: 'slug')   // URLs like /app/acme/products
+        ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources');
+}
+```
+
+```php
+// app/Models/User.php
+use Filament\Models\Contracts\HasTenants;
+use Filament\Panel;
+
+class User extends Authenticatable implements HasTenants
+{
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class);
+    }
+
+    public function getTenants(Panel $panel): Collection
+    {
+        return $this->teams;
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $this->teams()->whereKey($tenant)->exists();
+    }
+}
+```
+
+```php
+// app/Models/Team.php
+class Team extends Model
+{
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+}
+
+// app/Models/Product.php
+class Product extends Model
+{
+    public function team(): BelongsTo   // the "ownership relationship"
+    {
+        return $this->belongsTo(Team::class);
+    }
+}
+```
+
+The sheet page is the same as on any panel:
+
+```php
+class EditProductsSheet extends SheetPage
+{
+    protected static string $resource = ProductResource::class;
+
+    public function sheet(Sheet $sheet): Sheet
+    {
+        return $sheet
+            ->columns([
+                Columns\Text::make('sku')->rules(fn (?Model $record): array => [
+                    'required',
+                    // unique inside the team (see "Things to watch" below)
+                    Rule::unique('products', 'sku')->where('team_id', Filament::getTenant()?->getKey())->ignore($record),
+                ]),
+                Columns\Text::make('name')->rules(['required']),
+                Columns\Select::make('category_id')->relationship('category', 'name'),
+                Columns\Number::make('stock'),
+            ])
+            ->creatable()
+            ->deletable();
+    }
+}
+```
+
+### What is kept per team
+
+- **Rows.** Filament scopes the models of the panel's resources to the current team. The sheet reads through that scope, so every read and write — rows, totals, groups, find, saves, deletes, bulk edit, import, export, history and opening a record — only reaches the current team's records. A key of another team's record sent from the browser is treated like a record that does not exist: a change to it is reported as a conflict, a delete does nothing, and loading it returns nothing. Opening another team's URL is refused by Filament.
+- **New rows.** Filament puts the current team on a record when it is created, so rows added in the sheet (also in widgets, relation managers and imports) belong to the team that added them.
+- **The tenant key is read-only.** The column of the ownership relationship — `team_id`, the type and id of a `morphTo`, or a `MultiSelect` of a `belongsToMany` ownership — is read-only in the sheet, so users can neither move a record to another team nor create one there. You can still show the column. Values sent for it are ignored.
+- **Select options.** A select column's options, the labels of pasted values and the check of saved values use the relationship's query with its global scopes. When the related model has a resource in the panel (say `CategoryResource`), only the current team's options are offered and accepted. Otherwise narrow the options yourself (see below).
+- **Saved views.** Views are stored with the team. A team sees only its own views, and a shared view is shared with the other members of the team.
+- **The column arrangement** that the browser remembers for each sheet page is not stored per team. It holds no data, only widths, order and visibility.
+
+### Columns and migrations
+
+- **Your table** needs the column of the ownership relationship, for example `$table->foreignId('team_id')->constrained()`, as for any Filament resource with tenancy. Warp Sheet adds no columns to your tables.
+- **Warp Sheet's tables:** `warp_sheet_views` stores the team in `tenant_type` and `tenant_id`, and the user in `owner_type` and `owner_id`; the history table (`warp_sheet_changes`) stores the user in `user_type` and `user_id`. These key columns are text, so teams and users with UUID or ULID keys work. The history table has no team column; it is only read through a record of the sheet, which is already scoped.
+- **Upgrading from 1.0.x:** run `php artisan migrate`. The migration `update_warp_sheet_keys_to_strings` turns `owner_id`, `tenant_id` and `user_id` from integer into text columns and keeps the saved views and the history. (Before, a team or a user with a UUID or ULID key could not save views or history on MySQL, MariaDB and PostgreSQL.) If you published Warp Sheet's migrations, publish them again with `php artisan vendor:publish --tag=filament-warp-sheet-migrations` and migrate.
+
+### Not scoping, and other relationship names
+
+The sheet follows the settings of Filament's tenancy:
+
+```php
+// Every team's records on one resource (an admin overview, shared data):
+class ProductResource extends Resource
+{
+    protected static bool $isScopedToTenant = false;
+}
+```
+
+The sheet of such a resource shows every team's records and does not lock the tenant key.
+
+```php
+// Another name for the ownership relationship, for the whole panel...
+$panel->tenant(Team::class, ownershipRelationship: 'owner');
+
+// ...or for one resource:
+class NoteResource extends Resource
+{
+    protected static ?string $tenantOwnershipRelationshipName = 'owner';
+}
+```
+
+The sheet locks the column of the relationship with that name. The ownership relationship may also be `belongsToMany` through a pivot table (`teams()`); the rows are then scoped through the pivot table, and new rows are attached to the current team.
+
+A sheet with its own `$sheet->query(Product::query()...)` is scoped the same way, as long as the model has a resource in the panel. Do not call `withoutGlobalScopes()` on it.
+
+### Things to watch
+
+- **Models without a resource in the panel** are not scoped by Filament. This matters for a widget or a relation manager on such a model, and for a select column whose related model has no resource. Scope them yourself:
+
+  ```php
+  use Filament\Facades\Filament;
+
+  $sheet
+      ->query(Note::query()->whereBelongsTo(Filament::getTenant()))
+      ->newRecordUsing(fn (): Note => new Note(['team_id' => Filament::getTenant()->getKey()]))
+      ->columns([
+          Columns\Select::make('category_id')->relationship(
+              'category',
+              'name',
+              fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),
+          ),
+          // ...
+      ]);
+  ```
+
+- **Unique rules:** Laravel's `Rule::unique()` does not know about teams. Add the team to the rule, as in the example above, and to the unique index of the table (`$table->unique(['team_id', 'sku'])`).
+- **Your own code** in `beforeSave()`, `afterSave()`, policies and column rules runs inside the panel's request, so `Filament::getTenant()` returns the current team there.
+- **No routes or jobs:** the sheet has no routes, queued jobs or notifications outside the panel. Exports are streamed in the same request, so they are scoped too.
 
 ## Keyboard
 

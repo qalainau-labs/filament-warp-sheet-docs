@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-25
+
+### Upgrading
+
+- Run `php artisan migrate` after updating. The new `update_warp_sheet_keys_to_strings` migration turns
+  `warp_sheet_views.owner_id`, `warp_sheet_views.tenant_id` and `warp_sheet_changes.user_id` into text columns and keeps
+  the saved views and the history.
+
+### Added
+
+- A "Multi-tenancy" section in the README: the panel setup, what is kept per team, the columns it needs, how to turn the
+  scoping off or use another relationship name, and what to watch.
+
+### Fixed
+
+- On a panel with tenancy, the column of the tenant's ownership relationship (`team_id`, a `morphTo`'s type and id, or a
+  `MultiSelect` of a `belongsToMany` ownership) is read-only. Users could change it and move a record to another team.
+- On a panel with tenancy, a sheet that shows the tenant key column can add rows again. New rows were refused because the
+  column was required, although Filament fills it in when the record is created.
+- Saved views and the history work for teams and users with UUID or ULID keys. `warp_sheet_views.owner_id`,
+  `warp_sheet_views.tenant_id` and `warp_sheet_changes.user_id` were integer columns, so saving a view, or a save of a
+  sheet with `auditLog()`, failed on MySQL, MariaDB and PostgreSQL. Run `php artisan migrate` after updating: the new
+  migration `update_warp_sheet_keys_to_strings` turns them into text columns and keeps the saved views and the history.
+
 ## [1.0.6] - 2026-10-20
 
 ### Fixed
