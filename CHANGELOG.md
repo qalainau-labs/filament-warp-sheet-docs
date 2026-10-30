@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-31
+
+### Added
+
+- German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese (simplified and traditional) translations.
+- Importing Excel's "Unicode Text" (UTF-16, tab-separated) files.
+
+### Fixed
+
+- When an imported file could not be read (too large, not a CSV or xlsx file, an old .xls file, and so on), the reason
+  was always shown in English. It now follows the app's language.
+- Images, PDFs and other files that are not tables were read as rows of garbage; they are now refused. An old Excel
+  97–2003 file (.xls) gets a message to save it as .xlsx or CSV.
+- Rows with only spaces (left over in a spreadsheet) are skipped like empty rows.
+
 ## [1.1.1] - 2026-10-25
 
 ### Fixed

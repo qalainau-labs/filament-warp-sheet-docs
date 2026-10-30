@@ -68,7 +68,7 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - **Column types**: text, multi-line text, numbers with currencies, selects (including enums and searched relationships), multi-selects for `belongsToMany`, dates, date-times, times and booleans, with per-record read-only cells and colors.
 - **Pages, widgets and relation managers**: a sheet can be a resource page, a dashboard widget, or a relation manager on a record's page, with as many on one page as you like.
 - **Multi-tenancy**: on a panel with Filament's tenancy, each team sees, edits and saves views of its own records only. See [Multi-tenancy](#multi-tenancy).
-- **Filament integration**: a resource page, panel colors and fonts, dark mode, notifications, modal actions, save hooks and translations (English and Japanese).
+- **Filament integration**: a resource page, panel colors and fonts, dark mode, notifications, modal actions, save hooks and translations (English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese, simplified and traditional).
 
 | Select editor | Dark mode |
 | --- | --- |
@@ -455,7 +455,7 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 
 ### Translations
 
-The sheet ships with English and Japanese. To change the wording, publish the translations:
+The sheet ships with English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese (simplified and traditional); it follows the app's locale. To change the wording or add a language, publish the translations:
 
 ```bash
 php artisan vendor:publish --tag=filament-warp-sheet-translations
