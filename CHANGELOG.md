@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-31
+
+### Added
+
+- Columns from related records: name a column after a relationship and an attribute with a dot
+  (`Columns\Text::make('product.sku')`, also nested like `product.category.name`). The column is read-only and never
+  saved, its relationships are eager-loaded with the rows, and it is empty for rows without a related record. It can be
+  sorted, searched, filtered, totalled, exported and used as the import key (`importable(key: 'product.sku')`).
+- Cell colors decided by a `color()` closure now follow unsaved edits: the sheet asks the server for the colors of the
+  edited rows on screen (nothing is saved), so a computed column is colored as soon as a value it uses is typed.
+
+### Changed
+
+- A total without any value shows `0` for `sum` and `count` and `—` for `avg`, `min` and `max`, instead of the bare
+  label ("Sum").
+- A fixed color (`->color('info')`) also stays on cells the user has changed.
+
 ## [1.2.0] - 2026-10-31
 
 ### Added

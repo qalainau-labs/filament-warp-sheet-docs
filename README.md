@@ -163,6 +163,26 @@ Columns\Text::make('sku')->rules(fn (?Model $record): array => [
 ]),
 ```
 
+#### Columns from related records
+
+Show an attribute of a related record by naming the column after the relationship and the attribute, with a dot — as in Filament's tables. A stock count line that belongs to a product can show the product's SKU, name and unit without copying them onto the line:
+
+```php
+Columns\Text::make('product.sku')->label('SKU')->frozen(),
+Columns\Text::make('product.name')->label('Product'),
+Columns\Text::make('product.category.name')->label('Category'),   // relationships of relationships work too
+Columns\Number::make('product.cost')->decimals(2),
+Columns\Number::make('counted_quantity')->rules(['nullable', 'integer', 'min:0']),
+```
+
+- **Read-only, never saved.** A related column is always read-only, also after `readOnly(false)`. Values sent for it are ignored, so a save never writes to the related record. To change the related record, open it in its own resource.
+- **No extra queries per row.** The relationships of these columns are eager-loaded with every chunk of rows, so 200 rows cost one query for the rows and one for each relationship.
+- **Empty when there is no related record.** A line whose `product_id` is empty shows an empty cell; nothing fails.
+- **Sorting, search and filters** work in the database: sorting reads the related value with a subquery, so rows without a related record sort like empty cells; the search box and Ctrl/Cmd+F look into related text columns (they are searched by default like any text column); and the column filter keeps the rows whose related record matches (a row without a related record is not kept, also with "empty cells" ticked).
+- **Totals, export and import:** `summarize()` works on related columns, the export writes them like any column, and a related column can be the import key, for example `->importable(key: 'product.sku')` to match a file's rows by the product's SKU.
+- **Relationships:** use `belongsTo`, `hasOne` and `morphOne` (one related record), nested as deep as you like. A relationship with many records (`hasMany`, `belongsToMany`) shows their values joined with commas; it then sorts by one of them, so prefer a `MultiSelect` for those.
+- **Not available:** grouping by a related column, and using it in a computed column's formula (the formula throws when the sheet is built). Copy the value onto the record when you need those.
+
 #### Totals
 
 `summarize()` adds a row of totals at the bottom of the sheet, for every record matching the search and filters — not only the rows on screen:
@@ -174,6 +194,8 @@ Columns\Text::make('sku')->summarize('count'),
 ```
 
 `sum`, `avg`, `min` and `max` work on number and computed columns, `count` (filled values) on any column. They are worked out in one query on the saved values, and again after each save.
+
+A column without any value yet (no stock counted, or a filter that matches no records) shows `Sum 0` and `Count 0`, as a spreadsheet does, and `—` for the average, the minimum and the maximum: there is nothing to average, and `0` would look like a real value. Group subtotals follow the same rule.
 
 #### Computed columns
 
@@ -196,7 +218,7 @@ Simple rules are also checked in the browser the moment a cell changes — `requ
 Columns\Text::make('sku')->readOnly(fn (?Product $record): bool => $record !== null),
 ```
 
-`color()` colors a cell with one of the panel's colors (`danger`, `warning`, `success`, `info`, `primary`, `gray` or your own). Pass a closure to decide by value:
+`color()` colors a cell with one of the panel's colors (`danger`, `warning`, `success`, `info`, `primary`, `gray` or your own). Pass a closure to decide by value. It receives the cell's value (for a computed column, the computed result) and the record:
 
 ```php
 Columns\Number::make('stock')->color(fn (?int $value): ?string => match (true) {
@@ -204,9 +226,24 @@ Columns\Number::make('stock')->color(fn (?int $value): ?string => match (true) {
     $value < 20 => 'warning',
     default => null,
 }),
+
+Columns\Computed::make('difference')
+    ->formula('counted_quantity - expected_quantity')
+    ->color(fn (?int $value): ?string => match (true) {
+        $value > 0 => 'success',
+        $value < 0 => 'danger',
+        default => null,
+    }),
 ```
 
-Both are decided on the server from the saved values: a cell the user has just changed keeps its "changed" mark until it is saved.
+Colors follow the user's edits before they save. When a row is changed (or added), the sheet sends its unsaved values to the server, which puts them on a copy of the record — nothing is saved — and runs your closure again. The answer comes back a moment later, so a count typed into `counted_quantity` colors `difference` straight away. Only the rows on screen are asked for, a few hundred at a time, and an answer for values that changed again in the meantime is dropped.
+
+- Until the first answer for a row arrives, its changed cells and computed cells have no color; after that, the previous colors stay until the next answer.
+- A value that does not fit its column (letters in a number column, an impossible date) gives the row no colors until it is fixed. Rules that query the database (`unique`, `exists`) are not checked for this; they are checked on save.
+- The closure runs on a record with the unsaved values filled in but not saved, so do not save anything in it. A `MultiSelect` of a `belongsToMany` relationship keeps its saved values there.
+- A fixed color (`->color('info')`) needs no request and stays on changed cells.
+
+`readOnly()` closures are still decided on the server from the saved values.
 
 #### Select columns with many options
 
@@ -646,7 +683,7 @@ Drag the small square at the bottom-right corner of the selection (the fill hand
 ## Limitations
 
 - Warp Sheet is a page for whole resources. For rows inside a form, use a repeater.
-- Columns are the types above, on the model's own attributes, `belongsTo` relationships (`Select`) and `belongsToMany` relationships (`MultiSelect`).
+- Columns are the types above, on the model's own attributes, `belongsTo` relationships (`Select`) and `belongsToMany` relationships (`MultiSelect`). Attributes of related records can be shown read-only (`product.sku`, see [Columns from related records](#columns-from-related-records)).
 - No formulas, multiple sheets or Excel formatting — paste values from Excel, not workbooks.
 - New rows are saved one by one through Eloquent, to get their primary keys.
 
