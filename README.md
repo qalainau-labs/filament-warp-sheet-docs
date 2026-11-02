@@ -56,7 +56,7 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 
 - **The whole result, no pages**: scroll or jump to row 100,000 at once. Sort by clicking a header (select columns sort by their labels), search, and filter with Filament's own table filters.
 - **Spreadsheet editing**: a cell cursor, typing replaces the cell (Japanese and other input methods included), F2 edits it, Shift extends the selection, a fill handle that continues series, fill down and right, undo and redo, and frozen columns. The status bar shows the count, sum and average of the selection.
-- **Paste from Excel**: tab-separated cells from Excel, Numbers or Google Sheets. `1,234` is read as a number, `2026/10/14` as a date, and labels of a select column as its values. Paste or fill down far past the loaded rows; the sheet tracks every change by primary key.
+- **Paste from Excel**: tab-separated cells from Excel, Numbers or Google Sheets. `1,234` (or `1.234,5` in a decimal-comma language) is read as a number, `2026/10/14` as a date, and labels of a select column as its values. Paste or fill down far past the loaded rows; the sheet tracks every change by primary key.
 - **One save, all or nothing**: changes stay in the browser until the user saves. Each record is checked against your resource's `canEdit`, `canCreate` and `canDelete` and against the column rules, inside one transaction. Errors are marked on the cells and nothing is written until everything passes.
 - **Conflicts**: when someone else changed a record after it was loaded, the save stops and shows their values — unless they changed other columns, in which case the changes are merged.
 - **Review before saving**: a panel lists every unsaved change with its old and new value, to jump to it or revert it.
@@ -139,7 +139,7 @@ use Qalainau\FilamentWarpSheet\Columns;
 | --- | --- |
 | `Columns\Text` | Searched by the search box unless you call `$sheet->searchable([...])`. |
 | `Columns\Textarea` | Several lines. Shown on one line in the cell; the editor grows while editing. Alt+Enter (Option+Enter on a Mac) adds a line break. |
-| `Columns\Number` | `->decimals(int)`, `->currency('USD')`, `->prefix('$')` and `->suffix(' kg')` set how it is shown, in the page language. Typed and pasted values may include them and thousands separators (`$1,234`). |
+| `Columns\Number` | `->decimals(int)`, `->currency('USD')`, `->prefix('$')` and `->suffix(' kg')` set how it is shown, in the page language. Typed and pasted values may include them and thousands separators (`$1,234`), and are read with the page language's separators: in German `12,50` is 12.5, `1.234,5` is 1234.5 and `1.250` is 1250. The other separator, used once and not followed by exactly three digits, is a decimal point (`12.5` in German, `12,50` in English). Number cells of Excel files keep their value in every language. |
 | `Columns\Select` | `->options([...])`, `->enum(Status::class)` (labels from Filament's `HasLabel`) or `->relationship('category', 'name')` (`belongsTo`). Sorted by label. |
 | `Columns\MultiSelect` | Several values: `->relationship('tags', 'name')` (`belongsToMany`, saved with `sync()`), or `->options([...])` / `->enum(...)` on an attribute cast to an array. Shown as small labels; typed and pasted as labels separated by commas (`Sale, Eco`), with the list completing the last one. Not sortable. |
 | `Columns\Date` | Stored as `Y-m-d`. Accepts pasted `2026/10/14`. |

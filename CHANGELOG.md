@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-02
+
+### Fixed
+
+- A few translations read more naturally: Japanese, Korean, French and Brazilian Portuguese wording in the import, bulk
+  edit, grouping and history messages.
+- Numbers typed, pasted or imported into a `Number` column are read with the page language's separators: in German,
+  French, Spanish, Italian and Brazilian Portuguese `12,50` is 12.5, `1.234,5` is 1234.5 and `1.250` is 1250 (before,
+  every comma was dropped, so `12,50` became 1250 and `1.234,5` became 1.2345). When the other separator appears once
+  and is not followed by exactly three digits it is a decimal point, so `12.5` in German and `12,50` in English are
+  12.5. Number cells of Excel files keep their value in every language.
+
 ## [1.3.0] - 2026-10-31
 
 ### Added
