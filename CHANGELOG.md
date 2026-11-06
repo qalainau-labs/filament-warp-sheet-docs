@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-06
+
+### Added
+
+- Instructions for AI coding assistants (Claude Code, Cursor, Codex) through [Laravel Boost](https://laravel.com/docs/boost):
+  a guideline that Boost adds to `CLAUDE.md` and `AGENTS.md`, and the `warp-sheet-development` skill for building
+  sheets and testing them. Select `qalainau/filament-warp-sheet` in `php artisan boost:install`, or add it to
+  `"packages"` in `boost.json`. See [AI coding assistants (Laravel Boost)](README.md#ai-coding-assistants-laravel-boost).
+- `php artisan warp:assign-tenant "App\Models\Team" 1`: for apps that add Filament's tenancy after saving views. Saved
+  views without a tenant are hidden from every tenant; the command gives them (`warp_sheet_views`) to one tenant, together with
+  the rows without a tenant of every other installed Warp plugin, in one transaction. `--dry-run` only counts them.
+  See "Adding tenancy to an app that already has saved views" in the README.
+- README: "Testing with tenancy". Another tenant's records and saved views are treated like ones that do not exist
+  (no exception or 403), with a table of what each call returns and an example test of what a tenant sees.
+
 ## [1.3.1] - 2026-11-02
 
 ### Fixed

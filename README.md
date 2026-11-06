@@ -106,6 +106,33 @@ The migrations create two tables: `warp_sheet_views` for the views users save, a
 
 > Run `php artisan filament:assets` again after every update of the package.
 
+### AI coding assistants (Laravel Boost)
+
+Warp Sheet ships instructions for AI coding assistants such as Claude Code, Cursor and Codex. If your app uses
+[Laravel Boost](https://laravel.com/docs/boost), the assistant learns how to use Warp Sheet from them: which classes to extend, where each kind of rule belongs, what is easy to get wrong, and how to test a sheet.
+
+- **Guidelines** (`resources/boost/guidelines/core.md`): a short summary that Boost adds to `CLAUDE.md`,
+  `AGENTS.md` and the other agent files. It also points the assistant to this README in `vendor/`, so it reads the
+  documentation of the version you have installed instead of guessing.
+- **Skill** `warp-sheet-development` (`resources/boost/skills/`): the steps for adding a sheet, where each kind of rule belongs (column rules, read-only cells, policies, rules across columns), and writing feature and browser tests. The assistant loads it when it works on a sheet.
+
+Boost does not add guidelines of other vendors' packages on its own. When `php artisan boost:install` asks
+"Which third-party AI guidelines/skills would you like to install?", select `qalainau/filament-warp-sheet`. To do
+it without the question, add the package to `boost.json` and run the command again:
+
+```json
+{
+    "packages": ["qalainau/filament-warp-sheet"]
+}
+```
+
+```bash
+php artisan boost:install --guidelines --skills -n
+```
+
+After you update Warp Sheet, run `php artisan boost:update` so the assistant gets the instructions of the new
+version.
+
 ## Usage
 
 ### Create a sheet page
@@ -658,6 +685,79 @@ A sheet with its own `$sheet->query(Product::query()...)` is scoped the same way
 - **Unique rules:** Laravel's `Rule::unique()` does not know about teams. Add the team to the rule, as in the example above, and to the unique index of the table (`$table->unique(['team_id', 'sku'])`).
 - **Your own code** in `beforeSave()`, `afterSave()`, policies and column rules runs inside the panel's request, so `Filament::getTenant()` returns the current team there.
 - **No routes or jobs:** the sheet has no routes, queued jobs or notifications outside the panel. Exports are streamed in the same request, so they are scoped too.
+
+### Adding tenancy to an app that already has saved views
+
+Views saved before the panel had tenancy have no team, so once you add `->tenant(...)` to the panel, no team sees them. They are not deleted, only hidden. Give them to one team with an Artisan command:
+
+```bash
+# See what would change: the tables and how many rows have no tenant. Nothing is changed.
+php artisan warp:assign-tenant "App\Models\Team" 1 --dry-run
+
+# Give those rows to the team with the key 1
+php artisan warp:assign-tenant "App\Models\Team" 1
+```
+
+- The first argument is the tenant model's class or its morph alias, the second its key. The command stops if there is no such record.
+- Only rows without a tenant are changed. Rows that already belong to a team are left as they are.
+- It covers every installed Warp plugin at once: Warp Sheet's `warp_sheet_views`, and the tables of Warp Pivot, Warp Floor and the others if they are installed. Every plugin registers the same command, so you run it once. The history (`warp_sheet_changes`) has no team column and needs nothing.
+- Everything happens in one database transaction. If one row can't be moved (another plugin's row would clash with a row the tenant already has), nothing is changed and the command says why.
+- Your own tables are not touched: fill their `team_id` yourself, as for any Filament resource.
+- `custom` in place of the model (`php artisan warp:assign-tenant custom acme`) is for plugins that keep a tenant key without a model (`tenantKeyUsing()` in Warp Floor, for example). Warp Sheet's views belong to the panel's tenant model, so name the model for them.
+
+### Testing with tenancy
+
+A record or saved view of another team is treated as if it did not exist. There is no special "wrong tenant" error and no 403, so in your tests, don't expect an exception; check what the team sees.
+
+| What the test sends with another team's key | What happens (the same as for a missing key) |
+| --- | --- |
+| Load rows (`warpSheetRows`) | The row is not returned |
+| Change a cell (`warpSheetSave` with `updates`) | Not saved: `saved` is `false` and the key is in `conflicts` with `row` = `null` (as for a row someone else deleted) |
+| Delete a row (`warpSheetSave` with `deletes`) | Nothing is deleted; `saved` is `true` |
+| Open or delete a saved view | `warpSheetApplyView` returns `null`, `warpSheetDeleteView` returns `false` |
+
+Livewire tests don't go through the team's URL, so set the panel and the tenant yourself. The rows the team sees come from `warpSheetKeys()` (the keys in the sheet's order, with the totals in `summaries`) and `warpSheetRows($keys)` (the values of each row in `values`), the same calls the browser makes:
+
+```php
+use Filament\Facades\Filament;
+use Livewire\Livewire;
+
+beforeEach(function () {
+    $this->acme = Team::create(['name' => 'Acme', 'slug' => 'acme']);
+    $this->globex = Team::create(['name' => 'Globex', 'slug' => 'globex']);
+
+    $user = User::factory()->create();
+    $user->teams()->attach([$this->acme->id, $this->globex->id]);
+    $this->actingAs($user);
+
+    Filament::setCurrentPanel('app');
+
+    // Filament puts the current team on new records, so create each team's records as that team
+    Filament::setTenant($this->globex);
+    $this->globexKettle = Product::create(['sku' => 'G-1', 'name' => 'Globex kettle', 'stock' => 7]);
+
+    Filament::setTenant($this->acme);
+    $this->acmeKettle = Product::create(['sku' => 'A-1', 'name' => 'Acme kettle', 'stock' => 3]);
+});
+
+it('shows only the products of the current team', function () {
+    $sheet = Livewire::test(EditProductsSheet::class)->instance();
+    $keys = $sheet->warpSheetKeys()['keys'];
+
+    expect($keys)->toBe([$this->acmeKettle->id])
+        ->and(array_column(array_column($sheet->warpSheetRows($keys), 'values'), 'name'))->toBe(['Acme kettle']);
+});
+
+it('does not change a product of another team', function () {
+    Livewire::test(EditProductsSheet::class)
+        ->call('warpSheetSave', ['updates' => [['key' => $this->globexKettle->id, 'values' => ['stock' => 99]]]])
+        ->assertReturned(fn (array $result) => $result['saved'] === false);
+
+    expect($this->globexKettle->fresh()->stock)->toBe(7);
+});
+```
+
+To test the page as a whole, request its URL with the team in it: `$this->get(ProductResource::getUrl('sheet', tenant: $this->acme))->assertOk()`. A team the user doesn't belong to gets a 404 from Filament.
 
 ## Keyboard
 
