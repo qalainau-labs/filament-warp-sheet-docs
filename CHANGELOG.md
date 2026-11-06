@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-06
+
+### Added
+
+- A JavaScript API for browser tests: `cellPoint()` finds a cell on the canvas (scrolling it into view), `cellValue()` reads what a cell holds including unsaved edits and its error, and `whenIdle()` waits until loading and saving are done. See "Browser tests (JavaScript)" in the README.
+
 ## [1.4.2] - 2026-11-06
 
 ### Fixed

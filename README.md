@@ -68,6 +68,7 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - **Column types**: text, multi-line text, numbers with currencies, selects (including enums and searched relationships), multi-selects for `belongsToMany`, dates, date-times, times and booleans, with per-record read-only cells and colors.
 - **Pages, widgets and relation managers**: a sheet can be a resource page, a dashboard widget, or a relation manager on a record's page, with as many on one page as you like.
 - **Multi-tenancy**: on a panel with Filament's tenancy, each team sees, edits and saves views of its own records only. See [Multi-tenancy](#multi-tenancy).
+- **Browser tests**: a small JavaScript API to find where a cell is on the canvas, read what it holds, and wait until loading and saving are done. See [Browser tests (JavaScript)](#browser-tests-javascript).
 - **Filament integration**: a resource page, panel colors and fonts, dark mode, notifications, modal actions, save hooks and translations (English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese, simplified and traditional).
 
 | Select editor | Dark mode |
@@ -772,6 +773,51 @@ it('does not change a product of another team', function () {
 ```
 
 To test the page as a whole, request its URL with the team in it: `$this->get(ProductResource::getUrl('sheet', tenant: $this->acme))->assertOk()`. A team the user doesn't belong to gets a 404 from Filament.
+
+## Browser tests (JavaScript)
+
+The sheet is drawn on a canvas, so there are no cell elements in the page to click or read. For Playwright (or any browser test), the sheet has three methods on its Alpine data. Use them instead of the sheet's internal objects (`grid`, `model`), which change between releases.
+
+```js
+import { test, expect } from '@playwright/test'
+
+test('the stock of a product can be changed in the sheet', async ({ page }) => {
+    const sheet = (method, argument) =>
+        page.evaluate(([method, argument]) => Alpine.$data(document.querySelector('.fi-warp-sheet'))[method](argument), [method, argument])
+
+    await page.goto('/admin/products/sheet')
+    await page.waitForFunction(() => window.Alpine && Alpine.$data(document.querySelector('.fi-warp-sheet'))?.whenIdle)
+    await sheet('whenIdle') // the rows on screen are loaded
+
+    // find the cell (the sheet scrolls it into view), click it and type
+    const cell = await sheet('cellPoint', { record: '42', column: 'stock' })
+    // { record: '42', column: 'stock', row: 41, x: 912, y: 455, left: 852, top: 439, width: 120, height: 32, visible: true }
+    await page.mouse.click(cell.x, cell.y)
+    await page.keyboard.type('15')
+    await page.keyboard.press('Enter')
+    await sheet('whenIdle')
+
+    // the edit is in the sheet but not saved yet
+    expect(await sheet('cellValue', { record: '42', column: 'stock' })).toMatchObject({ value: 15, changed: true, error: null })
+
+    await page.getByRole('button', { name: /Save 1 change/ }).click()
+    await sheet('whenIdle') // the save has finished
+
+    expect(await sheet('cellValue', { record: '42', column: 'stock' })).toMatchObject({ value: 15, changed: false })
+    // check the database here as well
+})
+```
+
+- **`cellPoint({ record, column })`** or **`cellPoint({ row, column })`** — returns a promise with the position of the cell on the screen. `record` is the record key (a string or a number), `row` the position of the row in the sheet as it is shown now (0 is the first row; with grouping, the group header rows count too), and `column` the column name. If the cell is out of view, the sheet scrolls to it first (and the page too, if the sheet itself is off screen), so a click at `x`, `y` lands on it. `x` and `y` are the center and `left`, `top`, `width`, `height` the box, in the same viewport pixels as `getBoundingClientRect()`. `record` and `row` in the result tell you which record you got. Pass `scroll: false` to measure without scrolling; `visible` then tells you whether the center can be clicked. It returns `null` for a record that is not in the sheet (filtered out, or in a collapsed group), a group header row, and a column that is hidden or does not exist.
+- **`cellValue({ record, column })`** or **`cellValue({ row, column })`** — returns a promise with what the cell holds now, including unsaved edits: `{ record, column, value, text, changed, error, deleted }`. `value` is the value as it will be saved (a number for number columns, the option value for selects, an array for multi-selects, `true`/`false` for booleans), `text` the text the cell shows (with the currency and separators; booleans as `TRUE`/`FALSE`), `changed` whether the cell has an unsaved edit, `error` the message of the cell's red mark (a rule checked while typing, or a validation error after a refused save) or `null`, and `deleted` whether the row is marked for deletion. The row does not have to be on screen: if it is not loaded yet, the sheet loads it first, without scrolling. Hidden columns can be read too. It returns `null` for a record that is not in the sheet or is in a collapsed group, a group header row and a column that does not exist.
+- **`whenIdle()`** — returns a promise that resolves when the sheet is not listing records (after a sort, search, filter or grouping), not loading rows, not saving or importing, not waiting for cell colors, and has drawn the latest state. It rejects after 10 seconds (`whenIdle({ timeout: 30000 })` to wait longer, for example for a large save).
+
+Things to know:
+
+- Until it is saved, a row you add has the key `new:1`, `new:2` and so on (in the order the rows were added), so `cellPoint({ record: 'new:1', column: 'name' })` finds the first one. After the save it has its real key.
+- Call `whenIdle()` after pressing Enter or Tab and before `cellValue()`. In a select column that searches on the server, Enter waits for the search to answer before it picks the option, and `whenIdle()` waits for that too.
+- Rules the browser checks (`required`, `numeric`, `integer`, `min`, `max`, `between`, `email`, `url` and date formats, see [Columns](#columns)) mark the cell as soon as it changes. The others (`unique`, `exists`, closures) are checked when saving, so their `error` appears after a refused save.
+- With several sheets on one page, pick one with `document.querySelectorAll('.fi-warp-sheet')[n]`.
 
 ## Keyboard
 
