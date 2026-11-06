@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-11-06
+
+### Fixed
+
+- The docblock of `Column::color()` said colors come only from saved values and are not given to cells being
+  edited. Since 1.3.0 a closure runs again on the unsaved values of a changed row, as the README says; the docblock now
+  says so too.
+
 ## [1.4.1] - 2026-11-06
 
 ### Fixed
