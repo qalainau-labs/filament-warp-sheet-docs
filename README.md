@@ -190,6 +190,20 @@ Columns\Text::make('sku')->rules(fn (?Model $record): array => [
 ]),
 ```
 
+Rules may name another column of the same record, such as a price that may not be lower than the cost, or an end
+that must come after the start:
+
+```php
+Columns\Number::make('price')->rules(['required', 'numeric', 'gte:cost']),
+Columns\Number::make('cost')->rules(['required', 'numeric', 'min:0']),
+```
+
+The rule sees the saved values of the record's other columns together with the changed ones. When only the cost is
+changed, the price rule that names `cost` is checked again, and its message is shown on the price cell. This works for
+Laravel's string rules (`gte:cost`, `after:starts_on`, `required_if:status,closed`). A rule object that reads other
+columns only runs when its own cell is changed; for those, and for checks across several records, use
+[`afterSave()`](#hooks) and throw `SaveAborted`.
+
 #### Columns from related records
 
 Show an attribute of a related record by naming the column after the relationship and the attribute, with a dot — as in Filament's tables. A stock count line that belongs to a product can show the product's SKU, name and unit without copying them onto the line:

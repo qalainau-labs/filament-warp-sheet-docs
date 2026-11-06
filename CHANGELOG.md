@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-06
+
+### Fixed
+
+- Rules that name another column of the record (`gte:cost`, `after:starts_on`) refused good values, because only the
+  changed cells were given to the validator, and changing only the other column (`cost`) never checked them. They now
+  see the record's saved values together with the changed ones, and a rule that names a changed column is checked
+  again (its message is shown on its own cell).
+
 ## [1.4.0] - 2026-11-06
 
 ### Added
