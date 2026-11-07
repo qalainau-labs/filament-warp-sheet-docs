@@ -80,7 +80,12 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - PHP 8.3+
 - Laravel 12 or 13
 - Filament 5.x (Livewire 4)
-- SQLite 3.25+, MySQL 8.0+, MariaDB 10.2+ or PostgreSQL (grouping uses window functions)
+- SQLite 3.25+, MySQL 8.0+, MariaDB 10.11+ or PostgreSQL 14+ (grouping uses window functions)
+
+### Tested on
+
+Before each release, the full test suite runs on PHP 8.3, 8.4 and 8.5 × Laravel 12 and 13 × SQLite, MySQL, MariaDB and PostgreSQL, with each database at its newest and its oldest supported version: 42 combinations in all. A version is released only when every combination passes.
+[See the results for each release](https://github.com/qalainau-labs/filament-warp-sheet-docs/tree/main/test-runs).
 
 ## Installation
 
