@@ -731,7 +731,7 @@ A record or saved view of another team is treated as if it did not exist. There 
 | Delete a row (`warpSheetSave` with `deletes`) | Nothing is deleted; `saved` is `true` |
 | Open or delete a saved view | `warpSheetApplyView` returns `null`, `warpSheetDeleteView` returns `false` |
 
-Livewire tests don't go through the team's URL, so set the panel and the tenant yourself. The rows the team sees come from `warpSheetKeys()` (the keys in the sheet's order, with the totals in `summaries`) and `warpSheetRows($keys)` (the values of each row in `values`), the same calls the browser makes:
+Livewire tests don't go through the team's URL, so set the panel and the tenant yourself, and boot the panel with `Filament::bootCurrentPanel()`. A request to the panel boots it in Filament's middleware; a Livewire test does not, and until the panel is booted Filament has not added the tenant scope to the resource's model or put the current team on new records. Without it, the sheet in your test lists every team's rows and `Product::create()` fails on the empty `team_id`. The rows the team sees come from `warpSheetKeys()` (the keys in the sheet's order, with the totals in `summaries`) and `warpSheetRows($keys)` (the values of each row in `values`), the same calls the browser makes:
 
 ```php
 use Filament\Facades\Filament;
@@ -746,6 +746,7 @@ beforeEach(function () {
     $this->actingAs($user);
 
     Filament::setCurrentPanel('app');
+    Filament::bootCurrentPanel(); // adds the tenant scopes, as a request to the panel does
 
     // Filament puts the current team on new records, so create each team's records as that team
     Filament::setTenant($this->globex);
@@ -773,6 +774,43 @@ it('does not change a product of another team', function () {
 ```
 
 To test the page as a whole, request its URL with the team in it: `$this->get(ProductResource::getUrl('sheet', tenant: $this->acme))->assertOk()`. A team the user doesn't belong to gets a 404 from Filament.
+
+## Feature tests (PHP)
+
+Feature tests call the same Livewire methods the browser calls, on the page (or widget, or relation manager) instance. They check the policies, the query and the rules exactly as a user's request does.
+
+| Method | Returns |
+| --- | --- |
+| `warpSheetKeys()` | `keys`: the primary keys in the sheet's order (with the sort, search and filters you pass), and `summaries`: the totals per column (`['stock' => ['sum' => 12]]`) |
+| `warpSheetRows($keys)` | One entry per key the sheet can show: `key`, `version` and `values` by column name (select columns hold the value, not the label) |
+| `warpSheetOptions($column, $search = '')` | The options of a select or multi-select column that match the text, as `[[value, label], …]`: labels that start with the text first, then labels that contain it, at most 50. The same query the editor uses, so a test can check that only the current team's categories are offered. An empty text returns the first 50 |
+| `warpSheetSave($changes)` | `saved`, `errors` (`[['key' => …, 'messages' => ['column' => 'message']]]`), `conflicts` and `message` (the `SaveAborted` message). A refused save returns `saved => false`; it does not throw |
+
+```php
+use Livewire\Livewire;
+
+it('offers only the categories of the products sheet', function () {
+    $kitchen = Category::create(['name' => 'Kitchen']);
+
+    Livewire::test(EditProductsSheet::class)
+        ->call('warpSheetOptions', 'category_id', 'kit')
+        ->assertReturned([[$kitchen->id, 'Kitchen']]);
+});
+
+it('refuses negative stock and saves nothing', function () {
+    $kettle = Product::create(['sku' => 'K-1', 'name' => 'Kettle', 'stock' => 3]);
+
+    $result = Livewire::test(EditProductsSheet::class)->instance()
+        ->warpSheetSave(['updates' => [['key' => $kettle->id, 'values' => ['stock' => -1]]]]);
+
+    expect($result['saved'])->toBeFalse()
+        ->and($result['errors'][0]['messages'])->toHaveKey('stock')
+        ->and($kettle->refresh()->stock)->toBe(3);
+});
+```
+
+- `warpSheetSave()` takes `updates` (`key`, and the `values` of the changed columns only, as the browser sends them), `creates` (`id` any string, `values`) and `deletes` (`key`). `creates` only work with `->creatable()` and `deletes` with `->deletable()`; otherwise they are ignored.
+- On a panel with tenancy, see [Testing with tenancy](#testing-with-tenancy) first: the panel has to be booted in the test.
 
 ## Browser tests (JavaScript)
 

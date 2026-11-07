@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-07
+
+### Documentation
+
+- "Testing with tenancy" now calls `Filament::bootCurrentPanel()` in the example. A Livewire test does not go through the panel's middleware, so without it Filament adds no tenant scope to the resource's model and puts no team on new records; the example as it was listed every team's rows. The AI guidelines and the skill say the same.
+- A new "Feature tests (PHP)" section lists the methods a feature test calls — `warpSheetKeys()`, `warpSheetRows()`, `warpSheetSave()` and `warpSheetOptions()` (the matching options of a select column, prefix matches first, at most 50) — with examples.
+- The AI guidelines' first example notes that `Rule::unique()` needs the team on a panel with tenancy.
+
 ## [1.5.0] - 2026-11-06
 
 ### Added
