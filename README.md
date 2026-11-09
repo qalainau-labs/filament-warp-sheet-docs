@@ -242,6 +242,8 @@ Columns\Text::make('sku')->summarize('count'),
 
 `sum`, `avg`, `min` and `max` work on number and computed columns, `count` (filled values) on any column. They are worked out in one query on the saved values, and again after each save.
 
+A column you have not resized grows to fit its totals, so a large sum is never cut off. If a user drags it narrower, pointing at the total shows it in full, and double-clicking the header edge fits the column to its values and totals again.
+
 A column without any value yet (no stock counted, or a filter that matches no records) shows `Sum 0` and `Count 0`, as a spreadsheet does, and `—` for the average, the minimum and the maximum: there is nothing to average, and `0` would look like a real value. Group subtotals follow the same rule.
 
 #### Computed columns
@@ -524,7 +526,7 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 | Method | Default |
 | --- | --- |
 | `$sheet->chunkSize(int)` | 200 rows loaded per request while scrolling |
-| `$sheet->height(string)` | The rest of the window, so the page does not scroll. Adjusted when the window is resized. Pass a CSS height to fix it |
+| `$sheet->height(string)` | The rest of the window, so the page does not scroll. Adjusted when the window is resized. On a page with a long description above it, the sheet stays at least 28rem tall (about 11 rows), or 60% of a short window, and the page scrolls instead. Pass a CSS height to fix it |
 | `$sheet->searchable(array)` | all text columns |
 
 ### Security

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-11-10
+
+### Fixed
+
+- Totals are no longer cut off (`Sum 23,024,…`). A column you have not resized grows to fit its totals. If you drag it narrower, pointing at the total shows it in full, and double-clicking the header edge fits the totals too.
+- A sheet that fills the rest of the window (no `height()`) no longer shrinks to about six rows on a page with a long description or a tall toolbar. It stays at least 28rem tall, or 60% of a short window, and the page scrolls instead.
+
 ## [1.5.1] - 2026-11-07
 
 ### Documentation
