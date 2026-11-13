@@ -5,6 +5,12 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4] - 2026-11-13
+
+### Fixed
+
+- A sheet in a relation manager (`SheetRelationManager`) can save large changes again. A save over about 600 KB, such as pasting thousands of rows, is sent in parts, and that failed with a server error (`canSaveWarpSheet does not exist`). Matching the rows of an imported file failed the same way.
+
 ## [1.5.3] - 2026-11-12
 
 ### Changed
