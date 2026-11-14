@@ -60,6 +60,7 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - **One save, all or nothing**: changes stay in the browser until the user saves. Each record is checked against your resource's `canEdit`, `canCreate` and `canDelete` and against the column rules, inside one transaction. Errors are marked on the cells and nothing is written until everything passes.
 - **Conflicts**: when someone else changed a record after it was loaded, the save stops and shows their values — unless they changed other columns, in which case the changes are merged.
 - **Review before saving**: a panel lists every unsaved change with its old and new value, to jump to it or revert it.
+- **Row and bulk actions**: your own Filament actions on a row (right-click) and on the selected rows (an "Actions" button), with their modals, forms and confirmations — so a sheet can replace a list page.
 - **Import, export and bulk edit**: export the filtered records to Excel or CSV, edit them anywhere, and import the file back as changes to review; or change one column of thousands of records at once on the server.
 - **Columns and views**: resize, hide and reorder columns, and save the arrangement with the sort, search and filters as private or shared views.
 - **Grouping**: group the rows by a column, with counts and subtotals per group, and collapse groups.
@@ -418,6 +419,53 @@ The new values go through the same path as a save: the resource's `canEdit()`, t
 $sheet->bulkEditable();
 ```
 
+### Row and bulk actions
+
+Give the sheet your own Filament actions. Row actions appear when the user right-clicks a row (Shift+F10 or the menu key from the keyboard); bulk actions appear under an "Actions" button in the toolbar and run on the selected rows. They are ordinary `Action` and `BulkAction` objects, so modals, forms, `requiresConfirmation()`, `url()`, notifications, `authorize()` and `visible()` work as they do in a Filament table. After an action runs, the sheet reloads its rows; unsaved changes stay.
+
+```php
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Forms\Components\TextInput;
+use Illuminate\Database\Eloquent\Collection;
+
+$sheet
+    ->recordActions([
+        Action::make('restock')
+            ->schema([TextInput::make('amount')->integer()->minValue(1)->required()])
+            ->action(fn (Product $record, array $data) => $record->increment('stock', $data['amount'])),
+        Action::make('discontinue')
+            ->color('danger')
+            ->requiresConfirmation()
+            // Asked for each row when the menu opens
+            ->visible(fn (Product $record): bool => $record->is_active)
+            ->action(fn (Product $record) => $record->update(['is_active' => false])),
+        Action::make('open')
+            ->url(fn (Product $record): string => route('shop.products.show', $record), shouldOpenInNewTab: true),
+    ])
+    ->bulkActions([
+        BulkAction::make('activate')
+            ->authorizeIndividualRecords('update')
+            ->action(fn (Collection $records) => $records->each->update(['is_active' => true])),
+        BulkAction::make('priceLabels')
+            ->action(fn (Collection $records) => response()->streamDownload(fn () => print(labels($records)), 'labels.csv')),
+    ]);
+```
+
+| Method | What it does |
+| --- | --- |
+| `recordActions(array\|Closure)` | Actions on one row. The right-click menu shows the ones that are visible for that row; `->color('danger')` shows in red. |
+| `bulkActions(array\|Closure)` | Actions on the selected rows. Hidden ones are left out of the "Actions" button. |
+| `maxBulkActionRecords(int)` | How many rows a bulk action may get at once. Default 1,000. With more rows selected, the action does not run and the user is told to select fewer. |
+
+Things to know:
+
+- **Actions use the saved values.** The record comes from the database, not from the cells. A row with unsaved changes (or a new or deleted row) cannot run a row action until it is saved, and a bulk action does not run while any selected row has unsaved changes; the sheet says why.
+- **The record is loaded again on the server** from the sheet's query (the resource's `getEloquentQuery()`, the relationship on a relation manager, the tenant), and `visible()` and `authorize()` are checked when the action opens and again when it runs. A key sent for a record outside the query does nothing.
+- **Bulk actions get the selected rows only**, not every record matching the search. To limit the rows per record, use `->authorizeIndividualRecords('update')` (records the policy refuses are skipped, and Filament says how many). `visible()` on a bulk action has no `$record`.
+- **Without `authorize()`, anyone who can open the sheet can run the action**, as on a Filament table. Check your policies in `authorize()` or `->authorizeIndividualRecords()`.
+- Action groups (`ActionGroup`) are shown flat, one item per action.
+
 ### Export
 
 `exportable()` adds "Export" to the toolbar, with Excel (.xlsx) and CSV. It writes the saved records with the sheet's current search, filters and sort, one column per sheet column: select columns as labels, booleans as `TRUE`/`FALSE` and dates as `Y-m-d`, so the file can be imported again. Values a spreadsheet would read as formulas are written as text. Unsaved changes are not in the file.
@@ -560,6 +608,7 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 - **Keys:** do not make a key column writable (the primary key or a foreign key) unless users may move records with it. A relation manager always makes its parent key read-only, and a panel with tenancy always makes the tenant key read-only (see [Multi-tenancy](#multi-tenancy)).
 - **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further. On a panel with tenancy, see [which options are scoped](#multi-tenancy).
 - **Links and images** open only `http`, `https`, `mailto` and `tel` URLs. Image columns load their URLs in every viewer's browser; when users can type them, prefer `disk()` or `url()`.
+- **Row and bulk actions** load their records again from `query()` and check `visible()` and `authorize()` when they open and when they run. A bulk action never gets more rows than `maxBulkActionRecords()`, even if the request is changed by hand. Without `authorize()`, an action can be run by anyone who can open the sheet.
 - **Messages:** `SaveAborted` and validation messages are escaped before they are shown in Filament notifications.
 - **Limits:** a user can export 10 times a minute and save 100 views per sheet; staged parts of large saves are limited in size and number.
 

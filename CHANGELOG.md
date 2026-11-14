@@ -5,6 +5,12 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-11-14
+
+### Added
+
+- Row actions and bulk actions: `recordActions()` puts your Filament actions in the right-click menu of a row, and `bulkActions()` puts them under an "Actions" button for the selected rows. Modals, forms, confirmations, URLs and downloads work as on a Filament table; the record is loaded again from the sheet's query, and `visible()` and `authorize()` are checked for it. `maxBulkActionRecords()` limits the rows of a bulk action (default 1,000). See "Row and bulk actions" in the README.
+
 ## [1.6.0] - 2026-11-14
 
 ### Added
