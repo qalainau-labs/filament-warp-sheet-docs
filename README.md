@@ -60,6 +60,11 @@ The sheet is drawn on a `<canvas>`, so 100,000 rows cost no more DOM than 100. O
 - **One save, all or nothing**: changes stay in the browser until the user saves. Each record is checked against your resource's `canEdit`, `canCreate` and `canDelete` and against the column rules, inside one transaction. Errors are marked on the cells and nothing is written until everything passes.
 - **Conflicts**: when someone else changed a record after it was loaded, the save stops and shows their values — unless they changed other columns, in which case the changes are merged.
 - **Review before saving**: a panel lists every unsaved change with its old and new value, to jump to it or revert it.
+- **Grouped headers, wrapped text and row height**: a second header row such as quarters above months, long notes wrapped over two or three lines, and a row height each user can choose.
+- **Data bars and heatmaps**: bars and shades on number columns, measured against every matching record; users can switch them from the header menu.
+- **Cell notes**: a note on any cell ("price not confirmed yet") kept apart from its value, with who wrote it and when.
+- **Autosave**: optionally save a moment after each change, with the same checks as the Save button.
+- **Tablets**: scroll with a finger, tap to select, tap twice to edit and press and hold for the menu.
 - **Row and bulk actions**: your own Filament actions on a row (right-click) and on the selected rows (an "Actions" button), with their modals, forms and confirmations — so a sheet can replace a list page.
 - **Import, export and bulk edit**: export the filtered records to Excel or CSV, edit them anywhere, and import the file back as changes to review; or change one column of thousands of records at once on the server.
 - **Columns and views**: resize, hide and reorder columns, and save the arrangement with the sort, search and filters as private or shared views.
@@ -172,7 +177,7 @@ use Qalainau\FilamentWarpSheet\Columns;
 | Column | Notes |
 | --- | --- |
 | `Columns\Text` | Searched by the search box unless you call `$sheet->searchable([...])`. |
-| `Columns\Textarea` | Several lines. Shown on one line in the cell; the editor grows while editing. Alt+Enter (Option+Enter on a Mac) adds a line break. |
+| `Columns\Textarea` | Several lines. Shown on one line in the cell, or wrapped over as many lines as the row height allows (see [Row height and wrapped text](#row-height-and-wrapped-text)); the editor grows while editing. Alt+Enter (Option+Enter on a Mac) adds a line break. |
 | `Columns\Number` | `->decimals(int)`, `->currency('USD')`, `->prefix('$')` and `->suffix(' kg')` set how it is shown, in the page language. Typed and pasted values may include them and thousands separators (`$1,234`), and are read with the page language's separators: in German `12,50` is 12.5, `1.234,5` is 1234.5 and `1.250` is 1250. The other separator, used once and not followed by exactly three digits, is a decimal point (`12.5` in German, `12,50` in English). Number cells of Excel files keep their value in every language. |
 | `Columns\Select` | `->options([...])`, `->enum(Status::class)` (labels from Filament's `HasLabel`) or `->relationship('category', 'name')` (`belongsTo`). Sorted by label. |
 | `Columns\MultiSelect` | Several values: `->relationship('tags', 'name')` (`belongsToMany`, saved with `sync()`), or `->options([...])` / `->enum(...)` on an attribute cast to an array. Shown as small labels; typed and pasted as labels separated by commas (`Sale, Eco`), with the list completing the last one. Not sortable. |
@@ -210,6 +215,42 @@ changed, the price rule that names `cost` is checked again, and its message is s
 Laravel's string rules (`gte:cost`, `after:starts_on`, `required_if:status,closed`). A rule object that reads other
 columns only runs when its own cell is changed; for those, and for checks across several records, use
 [`afterSave()`](#hooks) and throw `SaveAborted`.
+
+#### Grouped headers
+
+Put columns in a `ColumnGroup` to give them a second header row above their own headers, such as months under their quarter. Columns outside a group have an empty cell in that row.
+
+```php
+use Qalainau\FilamentWarpSheet\Columns\ColumnGroup;
+
+$sheet->columns([
+    Columns\Text::make('account')->frozen(),
+    ColumnGroup::make('Q1', [
+        Columns\Number::make('jan'),
+        Columns\Number::make('feb'),
+        Columns\Number::make('mar'),
+    ]),
+    ColumnGroup::make('Q2', [/* ... */]),
+    Columns\Computed::make('year')->formula('jan + feb + mar + ...'),
+]);
+```
+
+The group's name stays in view while any of its columns is on screen, also when the sheet is scrolled sideways. If users move a column away from its group in the "Columns" menu, the group is shown in two parts. Clicking the group row does nothing; the column headers below still sort and filter.
+
+#### Row height and wrapped text
+
+`Textarea` columns, and any column with `->wrap()`, wrap their text over as many lines as the row height allows, and end with "…" when it does not fit. With the default height of 32 pixels that is one line. Users choose 1, 2 or 3 lines under "Row height" at the top of the "Columns" menu (it is kept with their layout and saved views); set the starting height with `rowHeight()`:
+
+```php
+$sheet
+    ->rowHeight(52) // two lines; 24 to 240 pixels
+    ->columns([
+        Columns\Textarea::make('notes'),
+        Columns\Text::make('address')->wrap(),
+    ]);
+```
+
+All rows have the same height. The "Row height" choice is shown only on sheets with a wrapping column.
 
 #### Columns from related records
 
@@ -294,6 +335,19 @@ Colors follow the user's edits before they save. When a row is changed (or added
 - A fixed color (`->color('info')`) needs no request and stays on changed cells.
 
 `readOnly()` closures are still decided on the server from the saved values.
+
+#### Data bars and heatmaps
+
+Number columns, computed ones included, can show how large each value is: `->dataBars()` draws a bar behind the number, and `->heatmap()` shades the cell, darker for larger values.
+
+```php
+Columns\Number::make('price')->dataBars(),
+Columns\Number::make('stock')->heatmap(),
+```
+
+The scale goes from the lowest to the highest value of every record that matches the search and filters, not only the rows on screen, and is measured again after each search, filter and save. Bars start at 0 when all values are positive. A value changed but not saved yet is drawn within the current scale.
+
+Users can add, change or remove a format from the column's header menu (the funnel) under "Format", for any number column; their choice is kept with their layout and saved views. The minimum and maximum of all the formatted columns are read with one query.
 
 ### Columns only some users may see
 
@@ -402,6 +456,19 @@ $sheet->maxChangesPerSave(20_000); // or null for no limit
 
 Rows are written with prepared `UPDATE` statements rather than `Model::save()`, which is several times faster. On MySQL, MariaDB and PostgreSQL, rows that change the same columns are written 100 at a time in one statement. If the model has event listeners (observers, `saving`/`updated` hooks and so on), the sheet saves through Eloquent so they still run. Force either way with `$sheet->modelEvents(true)` or `$sheet->modelEvents(false)`.
 
+### Autosave
+
+`autosave()` saves the changes by themselves, a moment after the user stops changing cells, so there is no Save button to forget:
+
+```php
+$sheet->autosave();               // 1.5 seconds after the last change
+$sheet->autosave(delay: 3000);    // or after 3 seconds
+```
+
+An autosave is the same as pressing Save: all or nothing, with the same policies, rules, conflicts and hooks. It waits while a cell is being typed in and while the cursor is on a new row that is still being filled in, and saves once the user moves on. A change that cannot be saved (a rule fails, a conflict) is marked on its cell and is not sent again until the user changes something. The Save button still works and reads "All changes saved" once everything is in the database.
+
+Cells changed while a save is on its way are kept and saved next; this is true without autosave too.
+
 ### Bulk edit
 
 `bulkEditable()` adds "Bulk edit" to the toolbar. It changes one column of the selected rows, or of every record matching the search and filters — including the rows not loaded yet — on the server:
@@ -465,6 +532,17 @@ Things to know:
 - **Bulk actions get the selected rows only**, not every record matching the search. To limit the rows per record, use `->authorizeIndividualRecords('update')` (records the policy refuses are skipped, and Filament says how many). `visible()` on a bulk action has no `$record`.
 - **Without `authorize()`, anyone who can open the sheet can run the action**, as on a Filament table. Check your policies in `authorize()` or `->authorizeIndividualRecords()`.
 - Action groups (`ActionGroup`) are shown flat, one item per action.
+
+### Cell notes
+
+`notes()` lets users leave a note on a cell without changing its value, such as "Price not confirmed yet". Right-click a cell and choose "Add note…"; cells with a note have a small blue corner, and pointing at one shows the note. The header menu (the funnel) has "Only rows with a note in this column".
+
+```php
+$sheet->notes();                    // notes only
+$sheet->notes(showAuthors: true);   // also who wrote each note and when
+```
+
+Notes are saved with the other changes, in the same transaction, and are listed in "Review" before the save. They are stored in their own table, `warp_sheet_notes` (one note per record and column), so your tables do not change: run `php artisan migrate` after updating. Only users who may edit a record (`canEdit()`) can add, change or delete its notes; everyone who can open the sheet can read them. Notes on hidden columns ([`visible()`](#columns-only-some-users-may-see)) are not sent. A new row can have notes once it is saved. Undo (Ctrl/Cmd+Z) does not undo notes; revert them in "Review". A note can be up to 2,000 characters.
 
 ### Export
 
@@ -609,6 +687,7 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 - **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further. On a panel with tenancy, see [which options are scoped](#multi-tenancy).
 - **Links and images** open only `http`, `https`, `mailto` and `tel` URLs. Image columns load their URLs in every viewer's browser; when users can type them, prefer `disk()` or `url()`.
 - **Row and bulk actions** load their records again from `query()` and check `visible()` and `authorize()` when they open and when they run. A bulk action never gets more rows than `maxBulkActionRecords()`, even if the request is changed by hand. Without `authorize()`, an action can be run by anyone who can open the sheet.
+- **Cell notes** are written for records loaded again from `query()`, only by users who may edit them, and only on columns the user can see.
 - **Messages:** `SaveAborted` and validation messages are escaped before they are shown in Filament notifications.
 - **Limits:** a user can export 10 times a minute and save 100 views per sheet; staged parts of large saves are limited in size and number.
 
@@ -955,6 +1034,8 @@ Things to know:
 | Ctrl/Cmd + F, Ctrl + H | Find in the sheet, find and replace |
 | Ctrl + ; / Ctrl + Shift + ; | Today's date / the current time (into the selected cells, or at the caret while editing) |
 | Ctrl/Cmd + Z, Shift+Z / Y | Undo and redo |
+
+On a tablet, drag a finger to scroll, tap a cell to select it, tap it twice to edit it (the on-screen keyboard opens then, not while you are only selecting) and press and hold for the right-click menu. The fill handle and selecting several cells need a mouse or keyboard.
 
 Drag the small square at the bottom-right corner of the selection (the fill handle) to extend it in any direction, as in Excel: two or more numbers, dates or texts ending in a number (`Item 1`, `SKU-009`) with an even step continue as a series, a single date or numbered text counts up by one, and anything else is repeated.
 

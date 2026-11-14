@@ -5,6 +5,21 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-11-15
+
+### Added
+
+- Grouped headers: put columns in `ColumnGroup::make('Q1', [...])` to show a second header row above them. See "Grouped headers" in the README.
+- Wrapped text and row height: `Textarea` columns and columns with `->wrap()` wrap over as many lines as the row height allows. Users choose 1, 2 or 3 lines under "Row height" in the "Columns" menu, kept with their layout and saved views; `rowHeight()` sets the starting height.
+- Data bars and heatmaps on number columns: `->dataBars()` and `->heatmap()`, measured against every record matching the search and filters. Users can add or change them from the column's header menu under "Format".
+- Cell notes: `notes()` lets users leave a note on a cell without changing its value (right-click, "Add note…"), saved with the other changes; `notes(showAuthors: true)` also shows who wrote it and when. Notes are kept in a new table, `warp_sheet_notes`: run `php artisan migrate` after updating.
+- Autosave: `autosave()` saves a moment after the user stops changing cells, the same way as pressing Save.
+- Tablets: tap a cell twice to edit it and press and hold for the right-click menu; the on-screen keyboard opens only when editing.
+
+### Fixed
+
+- A cell confirmed while a save was on its way was dropped without a word. It is now kept and saved with the next save.
+
 ## [1.7.0] - 2026-11-14
 
 ### Added
