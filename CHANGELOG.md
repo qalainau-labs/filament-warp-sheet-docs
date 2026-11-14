@@ -5,6 +5,17 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-11-14
+
+### Added
+
+- `visible()` and `hidden()` on columns, with a closure to decide per user: a hidden column's values are not sent to the browser, and saves, imports, bulk edits, exports, totals, history, search, sort, filters, grouping and saved views cannot use it. A computed column whose formula uses a hidden column is hidden too. See "Columns only some users may see" in the README.
+
+### Fixed
+
+- On PostgreSQL, searching a sheet whose `searchable()` names a number or date column no longer fails with a server error (`operator does not exist: integer ~~* text`).
+- The bulk edit form no longer closes when you pick a column right after editing a cell or scrolling. While the sheet was still loading cell colors or rows in the background, a reply that arrived after the form had opened put the page back to its earlier state, so the next click closed the form. The same could close the record history and the "Save view" form.
+
 ## [1.5.4] - 2026-11-13
 
 ### Fixed

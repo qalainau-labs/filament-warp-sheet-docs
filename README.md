@@ -187,7 +187,7 @@ Dates, times and numbers typed in full-width characters by a Japanese input meth
 
 Columns are named `Columns\Text` and so on so they do not clash with Filament's `TextColumn` imports.
 
-All columns accept `->label()`, `->width()`, `->readOnly()`, `->frozen()` and `->rules()`. Rules that depend on the record (such as `unique` ignoring it) take a closure that receives the record, or `null` for a new row:
+All columns accept `->label()`, `->width()`, `->readOnly()`, `->frozen()`, `->visible()`, `->hidden()` and `->rules()`. Rules that depend on the record (such as `unique` ignoring it) take a closure that receives the record, or `null` for a new row:
 
 ```php
 Columns\Text::make('sku')->rules(fn (?Model $record): array => [
@@ -293,6 +293,30 @@ Colors follow the user's edits before they save. When a row is changed (or added
 - A fixed color (`->color('info')`) needs no request and stays on changed cells.
 
 `readOnly()` closures are still decided on the server from the saved values.
+
+### Columns only some users may see
+
+`visible()` and `hidden()` decide who gets a column at all, like the same methods on Filament's table columns. Pass a closure to decide per user; it runs once each time the sheet is built, so read the user there:
+
+```php
+Columns\Number::make('cost')
+    ->currency('USD')
+    ->visible(fn (): bool => auth()->user()->can('viewCosts', Product::class)),
+
+Columns\Computed::make('margin_rate')
+    ->formula('round((price - cost) / price * 100, 1)')
+    ->suffix('%'),
+```
+
+For a user who may not see `cost`, the sheet has no `cost` column:
+
+- Its values are never sent to the browser, and it is not in the "Columns" menu, exports, totals, history or bulk edit.
+- Saves, imports and bulk edits that name it are ignored, so the user cannot change it either.
+- Search, sort, filters, grouping and saved views cannot use it, even if `searchable(['cost'])` lists it or a shared view sorts by it.
+- **A computed column whose formula uses it is hidden too** (`margin_rate` above), because its values would give the hidden one away.
+- **The record form is yours.** Double-clicking a row number opens your resource's form (see [Opening a record](#opening-a-record)), which the sheet does not change: hide the field there too, for example with `->visible(...)` on the form field.
+
+This is different from users hiding columns in "Columns" (below), which only changes their view. If both are set, the column is hidden when either says so.
 
 #### Select columns with many options
 
@@ -531,7 +555,7 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 
 ### Security
 
-- **What users can see is the sheet's query.** Every read and write — rows, saves, deletes, history, import, export, bulk edit — stays inside `query()` (the resource's `getEloquentQuery()` on a page, the relationship on a relation manager). Hiding a column or filtering rows only changes the view: every column of the sheet is sent to the browser for the rows on screen. Leave out of the query the records users must not see, and out of the columns the attributes they must not read.
+- **What users can see is the sheet's query.** Every read and write — rows, saves, deletes, history, import, export, bulk edit — stays inside `query()` (the resource's `getEloquentQuery()` on a page, the relationship on a relation manager). Users hiding a column or filtering rows only changes the view: every column of the sheet is sent to the browser for the rows on screen. Leave out of the query the records users must not see, and hide with [`visible()`](#columns-only-some-users-may-see) the columns they must not read.
 - **Writes are checked record by record** with the policies (`canEdit()`, `canCreate()`, `canDelete()`) and the column rules. A widget uses the model's policy; without a policy it allows every change, so add one or make the columns `readOnly()`.
 - **Keys:** do not make a key column writable (the primary key or a foreign key) unless users may move records with it. A relation manager always makes its parent key read-only, and a panel with tenancy always makes the tenant key read-only (see [Multi-tenancy](#multi-tenancy)).
 - **Select columns** check new values against the relationship's query — its own constraints, global scopes and tenancy — and `relationship('category', 'name', fn (Builder $query) => ...)` narrows it further. On a panel with tenancy, see [which options are scoped](#multi-tenancy).
