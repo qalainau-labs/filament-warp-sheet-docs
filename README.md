@@ -679,6 +679,58 @@ If a hook throws, nothing is saved. A `SaveAborted` exception shows its message 
 | `$sheet->height(string)` | The rest of the window, so the page does not scroll. Adjusted when the window is resized. On a page with a long description above it, the sheet stays at least 28rem tall (about 11 rows), or 60% of a short window, and the page scrolls instead. Pass a CSS height to fix it |
 | `$sheet->searchable(array)` | all text columns |
 
+### Restricting pages per role
+
+Your app may have roles that should not open a sheet page at all, or that may look at it but not change anything. Sheet pages are pages you extend, so you decide this in your page by overriding two static methods:
+
+- `canAccess()` — who can open the page.
+- `canWrite()` — who can change data on it. When it returns `false`, the page still opens, but the whole sheet is read only.
+
+```php
+use App\Models\User;
+use Qalainau\FilamentWarpSheet\Pages\SheetPage;
+
+class EditProductsSheet extends SheetPage
+{
+    protected static string $resource = ProductResource::class;
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        $user = auth()->user();
+
+        return parent::canAccess($parameters)
+            && $user instanceof User && $user->canOpen(static::class);
+    }
+
+    public static function canWrite(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && ! $user->isReadOnlyOn(static::class);
+    }
+
+    // sheet() ...
+}
+```
+
+`canOpen()` and `isReadOnlyOn()` stand for your own role checks. Keep `parent::canAccess($parameters)` in `canAccess()`, so the resource's policy still applies. Return `false` for guests.
+
+**When `canAccess()` returns `false`**, the page's URL answers 403, and every Livewire call from a page that was already open is refused too (Filament checks `canAccess()` on each request). The sidebar item belongs to the resource, not to the sheet page: hide it with the resource's policy (`viewAny`) or `shouldRegisterNavigation()`.
+
+**When `canWrite()` returns `false`**, the page opens and users can still read, search, sort, filter, group, find (Ctrl+F), export, change their own columns and widths, use saved views and look at a row's history. These are hidden or refused:
+
+- Typing, pasting, filling and clearing cells — every column becomes read only.
+- "Add row" and deleting rows.
+- Saving and autosave: `warpSheetSave()` and `warpSheetStage()` answer 403 even if called directly.
+- Bulk edit (the action is hidden, and refused if called).
+- Import (hidden, and `warpSheetImportMatch()` answers 403).
+- Cell notes: "Add note", "Edit note" and "Delete note" are not in the right-click menu, and saving a note is refused.
+- Opening a row shows the resource's form read only (the view form, not the edit form).
+
+**Your own row and bulk actions are yours to restrict.** The sheet cannot know which of them change data, so it leaves them as they are. Hide the ones that write with `->visible(fn (): bool => EditProductsSheet::canWrite())` (or check it in `authorize()`).
+
+These checks only narrow what the resource allows: when `canWrite()` returns `true`, the policies (`canEdit()`, `canCreate()`, `canDelete()`) and the column rules still apply, and an allowing `canAccess()` cannot open the page to someone the resource refuses.
+
 ### Security
 
 - **What users can see is the sheet's query.** Every read and write — rows, saves, deletes, history, import, export, bulk edit — stays inside `query()` (the resource's `getEloquentQuery()` on a page, the relationship on a relation manager). Users hiding a column or filtering rows only changes the view: every column of the sheet is sent to the browser for the rows on screen. Leave out of the query the records users must not see, and hide with [`visible()`](#columns-only-some-users-may-see) the columns they must not read.

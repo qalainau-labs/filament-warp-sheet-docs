@@ -5,6 +5,12 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-11-15
+
+### Added
+
+- Read-only sheet pages: override `canWrite()` in your sheet page to let a role open the page without changing anything. The whole sheet becomes read only (no cell edits, adding or deleting rows, bulk edit, import or cell notes), and saving is refused even if called directly. See "Restricting pages per role" in the README.
+
 ## [1.8.0] - 2026-11-15
 
 ### Added
