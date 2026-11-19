@@ -5,6 +5,16 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.9.1] - 2026-11-20
+
+### Fixed
+
+- **Console error `warpSheet is not defined`**: on pages where Livewire re-renders the component inside another Alpine component, the browser console could show `warpSheet is not defined` before the component's script had arrived. Empty components are now registered up front, and the real ones replace them as soon as they load. No visible change.
+- **Copying cells**: a cell whose text contains a lone carriage return (`\r`, e.g. text that came from an old Mac file) is now quoted when copied, so pasting it into Excel or Google Sheets no longer splits it into extra rows.
+- **Console error `Cannot read properties of undefined (reading 'warpSheetRows')` when moving between pages quickly**: when you left a sheet page through `wire:navigate` (SPA mode) while it was still drawing or loading rows, the destroyed sheet kept trying to load rows and the browser console filled with this error. A sheet that is removed from the page now stops drawing and loading at once. No visible change.
+
 ## [1.9.0] - 2026-11-15
 
 ### Added
