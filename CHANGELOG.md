@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-11-20
+
+### Fixed
+
+- **Console error `Cannot read properties of undefined (reading 'warpSheetRanges')` when moving between pages very quickly**: 1.9.1 stopped a removed sheet from loading rows, but a request for the sheet's row order (sorting, search) or data-bar ranges that was already on its way could still continue after you left the page and fill the browser console with the same kind of error. A removed sheet now sends nothing at all. No visible change.
+
 ## [1.9.1] - 2026-11-20
 
 ### Fixed
