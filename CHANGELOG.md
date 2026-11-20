@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-20
+
+### Fixed
+
+- After you pick a view, sort, search, filter or group, the sheet now dims and the row count reads "Loading…" while the rows are reloaded, instead of leaving the old rows on screen (shown only if the reload takes longer than 250 ms).
+- The toolbar menus (Views, Columns, Export, bulk actions) now always open downward and scroll inside when they do not fit, instead of flipping upward over the page heading.
+
 ## [1.11.0] - 2026-11-20
 
 ### Added
