@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-20
+
+### Added
+
+- Code-defined `presetViews()` with labels, column filters, sorting, hidden columns, search, grouping and an optional default. Presets work without saved views or authentication and can be saved as personal views.
+- Empty-cell filters for text, textarea, link, number, date, datetime and time columns, alongside existing select, multi-select and boolean filters. Computed columns keep range filters only.
+
+### Changed
+
+- Empty-cell filters on relationship select and boolean attributes now also include rows without a related record, matching the empty cells shown in the sheet.
+- Korean: the "Views" button reads "보기" (it read "saved views", which no longer fits now that preset views are listed too).
+
 ## [1.9.2] - 2026-11-20
 
 ### Fixed

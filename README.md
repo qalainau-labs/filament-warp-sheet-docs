@@ -394,6 +394,56 @@ $sheet
 
 Views are stored per tenant when the panel has tenancy (see [Multi-tenancy](#multi-tenancy)).
 
+#### Preset views
+
+Give everyone the same ready-made views from code — for example, open an order sheet on the orders that have not shipped yet. Presets are listed first in "Views", nobody can delete them, and they also work with `savedViews(false)` and on pages that allow guests.
+
+```php
+use Qalainau\FilamentWarpSheet\Views\PresetView;
+
+$sheet->presetViews([
+    PresetView::make('not-shipped')               // a key: 1–100 letters, digits, - or _
+        ->label(__('orders.views.not_shipped'))   // shown in the menu; defaults to the key
+        ->columnFilters([
+            // the same filters as the header's funnel; a relationship column works too
+            'shipment.shipped_at' => ['empty' => true],
+        ])
+        ->sort('due_date', 'asc')
+        ->hiddenColumns(['internal_notes'])
+        ->default(),                              // open the sheet with this view
+    PresetView::make('by-customer')
+        ->label('By customer')
+        ->groupBy('customer_id'),
+]);
+```
+
+| Method | What it sets |
+| --- | --- |
+| `label(string\|Closure)` | The name in the "Views" menu. Defaults to the key. |
+| `columnFilters(array)` | Column filters, by column name (see the table below). |
+| `sort(string $column, 'asc'\|'desc')` | The sort. The column must be sortable. |
+| `hiddenColumns(array)` | Columns to hide. |
+| `search(string)` | The search box. |
+| `groupBy(string $column)` | Group rows by a groupable column. |
+| `default(bool = true)` | Open the sheet with this view. At most one preset. |
+
+`presetViews()` also takes a closure that returns the list.
+
+| Column type | `columnFilters` keys |
+| --- | --- |
+| `text`, `textarea`, `link` | `contains` (string), `empty` (bool) |
+| `number` | `min`, `max` (numeric), `empty` (bool) |
+| computed number | `min`, `max` (numeric) |
+| `date`, `datetime` | `from`, `to` (`Y-m-d`), `empty` (bool) |
+| `time` | `from`, `to` (`H:i`), `empty` (bool) |
+| `select`, `multiselect`, `boolean` | `values` (array), `empty` (bool) |
+
+Each key can be used on its own. `empty: true` includes null cells, and also empty strings for text columns. Relationship attribute columns include rows with no related record. Relationship multi-selects include rows with no related records; JSON multi-selects treat null as empty. Conditions and `empty` are joined with OR: `['from' => '2026-01-01', 'empty' => true]` includes dates from January 1 and empty cells.
+
+The sheet opens with the user's own default view if they saved one, otherwise with the `default()` preset, otherwise as defined; the "Default" badge in the menu marks the one that is used. Presets leave the Filament table filters (`filters()`) at their defaults; choosing one resets those filters to their defaults. To keep a changed copy, open a preset, change it and choose "Save view…".
+
+The presets are checked when the page builds the sheet, so a mistake shows up the first time you open the page: an invalid or duplicate key, more than one default, a column that is not in the sheet (columns inside a `ColumnGroup` count), a filter key or value that does not fit the column's type, a column that cannot be sorted or grouped, or a direction other than `asc`/`desc` throws an `InvalidArgumentException` naming the preset and the column.
+
 ### Grouping rows
 
 Open the menu of a column header (the funnel) and choose "Group by this column". The rows are ordered by that column — select columns by their labels — and every group gets a heading row with its value, its number of rows and the column summaries (`summarize()`) of its records, worked out in the database. Click a heading's arrow, press Space on it, or use the right-click menu to collapse and expand groups; the toolbar has "Collapse all", "Expand all" and a button to stop grouping. Sorting sorts within each group, and saved views remember the grouping.
@@ -411,6 +461,8 @@ Ctrl+H, or the arrow in the find bar, shows replace. "Replace" changes the curre
 ### Column filters
 
 Every column header has a filter button, as in Excel: text columns filter by what they contain, numbers and computed columns by a range, dates and times by a period, and selects, multi-selects and booleans by a list of values (including empty cells). The panel also sorts the column. Column filters run in the database, so they cover every record, and they apply to the totals, the export, bulk edit and saved views. "Clear column filters" in the toolbar removes them all. Nothing needs to be configured.
+
+Every column type except computed columns offers "(Empty)". Empty text cells include both null and `''`; other scalar cells use null. For relationship attribute columns, rows without a related record are included too. A condition together with "(Empty)" matches either. Computed columns keep their numeric range filter.
 
 ### Filters
 
