@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-20
+
+### Added
+
+- The "Views" button shows the view you are on ("View: Not shipped"), the views menu marks it with a check, and a dot and a "Modified" badge appear once you change its columns, sort, search, column filters or grouping (they go away when you change them back). The view the sheet opened with and a view you just saved count too.
+
+### Fixed
+
+- The "To" date of a date or date-time column filter no longer runs past the right edge of the filter panel; the two dates are now stacked.
+
 ## [1.10.0] - 2026-11-20
 
 ### Added

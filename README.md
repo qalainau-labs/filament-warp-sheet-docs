@@ -383,6 +383,8 @@ Users can drag the edge of a header to resize a column (double-click it to fit t
 
 ### Saved views
 
+The toolbar button shows the current view’s name, with a dot when its layout, sort, search, column filters or grouping has changed. The current view’s menu row has a checkmark and, while changed, a “Modified” badge.
+
 "Views" in the toolbar saves the current arrangement — column widths, order and visibility, sort, search and filters — under a name. Signed-in users see their own views and the ones shared with everyone, can make one their default (the sheet opens with it), and delete their own. "Default view" goes back to the sheet as defined.
 
 ```php
