@@ -187,7 +187,7 @@ use Qalainau\FilamentWarpSheet\Columns;
 | `Columns\Image` | A thumbnail of the value: a URL, a path on `->disk('public')`, or `->url(fn ($value, $record) => ...)`. `->circular()` for photos of people. Read-only unless you call `->readOnly(false)`. |
 | `Columns\Link` | Text shown as a link. Ctrl/Cmd+click (or the right-click menu) opens it in a new tab; a plain click selects the cell as usual. The value is the URL unless you build one with `->url(fn ($value, $record) => ...)`. `javascript:` and `data:` URLs never open. |
 | `Columns\Computed` | Read-only number worked out from other columns: `->formula('price * stock')`. See below. |
-| `Columns\Boolean` | Space toggles the selected cells. Accepts pasted `true`, `yes`, `1`, `✓` and their opposites. |
+| `Columns\Boolean` | Space toggles the selected cells. Accepts pasted `true`, `yes`, `1`, `✓` and their opposites, yes / no in the 10 supported languages (`Ja` / `Nein`, `oui` / `non`, `はい` / `いいえ` …) and the TRUE / FALSE that localized Excel copies (`WAHR` / `FALSCH`, `VRAI` / `FAUX`, `VERDADERO` / `FALSO` …). |
 
 Dates, times and numbers typed in full-width characters by a Japanese input method (`１，２００`, `２０２６／１０／１４`) are read as usual.
 

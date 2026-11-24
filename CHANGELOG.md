@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.2] - 2026-11-24
+
+### Fixed
+
+- Pasting or typing into a boolean column now also reads yes / no in the 10 supported languages (`Ja` / `Nein`, `oui` / `non`, `sí` / `no`, `sim` / `não`, `はい` / `いいえ`, `예` / `아니요`, `是` / `否`) and the TRUE / FALSE that German, French, Spanish, Italian and Portuguese Excel copy (`WAHR` / `FALSCH`, `VRAI` / `FAUX` …). Values that were read before are read the same way.
+
 ## [1.11.1] - 2026-11-20
 
 ### Fixed
