@@ -5,7 +5,11 @@ All notable changes to `qalainau/filament-warp-sheet` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.11.4] - 2026-11-27
+
+### Fixed
+
+- A sheet on a page of one record (a sheet page with `{record}` and `InteractsWithRecord`) could save the row form into the page's own record when the row had just been deleted, was not in the sheet, or no row was given. Opening such a row is now refused.
 
 ## [1.11.3] - 2026-11-26
 
