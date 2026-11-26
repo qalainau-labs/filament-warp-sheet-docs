@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.3] - 2026-11-26
+
+### Fixed
+
+- **Server-searched `Select` options with the same name keep a fixed order**: options are now ordered by name, then ID, before the 50-result limit, so on PostgreSQL options with the same name no longer swap places between searches or drop in and out at the limit.
+
 ## [1.11.2] - 2026-11-24
 
 ### Fixed
