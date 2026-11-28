@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.7] - 2026-11-28
+
+### Fixed
+
+- When the server's reply to deleting a saved view went missing, the list of views was reloaded without a word, although the view may already have been deleted. The sheet now says "We could not confirm that the view was deleted. The list of views has been reloaded, so check it before trying again." (new text key `views.delete_unknown`, 10 languages).
+
 ## [1.11.6] - 2026-11-28
 
 ### Fixed
