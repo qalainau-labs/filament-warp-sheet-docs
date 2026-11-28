@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.6] - 2026-11-28
+
+### Fixed
+
+- On a busy server, the sheet could stop working when an answer from the server went missing: searching or filtering the rows, finding in the sheet (Ctrl+F), choosing a value from a cell's list, searching a column filter's options, or opening the saved views. The row count stayed on "Loading…" and the finder or the option list kept spinning. The sheet now asks once more for anything it only reads and, if there is still no answer, keeps what it showed before.
+- When saving got no answer, the sheet said "Saving failed… try again", although the changes may already have been saved. It now says it could not confirm the save and asks you to reload the page to check before saving again. Changes are never sent twice on their own.
+
 ## [1.11.5] - 2026-11-27
 
 ### Fixed
